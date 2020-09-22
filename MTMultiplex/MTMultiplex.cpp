@@ -104,6 +104,6 @@ void Start()
     while (Active) {
         cout << Active << endl;
     }
-    cout << "So... " << Status << endl;
+    
 	return;
 }
