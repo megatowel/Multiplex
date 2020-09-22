@@ -30,14 +30,14 @@ ClientConnectionCallback(
 {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
-        cout << "Connected" << Connection << endl;
+        cout << "Connected: " << Connection << endl;
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
-        cout << "Shutdown" << Connection << endl;
+        cout << "Shutdown: " << Connection << endl;
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        cout << "Done" << Connection << endl;
+        cout << "Done: " << Connection << endl;
         Active = false;
         if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
             MSQuic->ConnectionClose(Connection);
@@ -69,24 +69,24 @@ void Start()
     Settings.IsSet.PeerBidiStreamCount = TRUE;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     if (QUIC_FAILED(Status = MsQuicOpen(&MSQuic))) {
-        cout << "MsQuicOpen failed" << Status << endl;
+        cout << "MsQuicOpen failed: " << Status << endl;
         return;
     }
 
     if (QUIC_FAILED(Status = MSQuic->RegistrationOpen(&RegConfig, &Registration))) {
-        cout << "RegistrationOpen failed" << Status << endl;
+        cout << "RegistrationOpen failed: " << Status << endl;
         return;
     }
 
     if (QUIC_FAILED(Status = MSQuic->SessionOpen(Registration, sizeof(Settings), &Settings, &Alpn, 1, nullptr, &Session))) {
-        cout << "SessionOpen failed" << Status << endl;
+        cout << "SessionOpen failed: " << Status << endl;
         return;
     }
 
     const char* ResumptionTicketString = nullptr;
     HQUIC Connection = nullptr;
     if (QUIC_FAILED(Status = MSQuic->ConnectionOpen(Session, ClientConnectionCallback, nullptr, &Connection))) {
-        cout << "ConnectionOpen failed" << Status << endl;
+        cout << "ConnectionOpen failed: " << Status << endl;
         if (QUIC_FAILED(Status) && Connection != nullptr) {
             MSQuic->ConnectionClose(Connection);
         }
@@ -96,7 +96,7 @@ void Start()
     Active = true;
 
     if (QUIC_FAILED(Status = MSQuic->ConnectionStart(Connection, AF_INET, "127.0.0.1", UdpPort))) {
-        cout << "ConnectionStart failed" << Status << endl;
+        cout << "ConnectionStart failed: " << Status << endl;
         if (QUIC_FAILED(Status) && Connection != nullptr) {
             MSQuic->ConnectionClose(Connection);
         }
