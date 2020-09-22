@@ -30,14 +30,14 @@ ClientConnectionCallback(
 {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
-        cout << "Connected: " << Connection << endl;
+        cout << Connection << ": Connected" << endl;
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
-        cout << "Shutdown: " << Connection << endl;
+        cout << Connection << ": Shutdown" << endl;
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        cout << "Done: " << Connection << endl;
+        cout << Connection << ": Done" << endl;
         Active = false;
         if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
             MSQuic->ConnectionClose(Connection);
