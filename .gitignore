@@ -1,2 +1,5 @@
+# Visual studio user specific cache
 /.vs
+
+# CMake builds and cache
 /out
