@@ -47,4 +47,5 @@
 
 #include <iostream>
 
-MTMULTIPLEX_EXPORT void Start();
+MTMULTIPLEX_EXPORT void Init_Server(char* host, int port);
+MTMULTIPLEX_EXPORT void Init_Client(char* host, int port);
