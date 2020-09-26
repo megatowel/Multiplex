@@ -47,5 +47,19 @@
 
 #include <iostream>
 
-MTMULTIPLEX_EXPORT void Init_Server(char* host, int port);
-MTMULTIPLEX_EXPORT void Init_Client(char* host, int port);
+MTMULTIPLEX_EXPORT int Init_ENet();
+
+class MTMULTIPLEX_EXPORT Multiplex
+{
+public:
+    Multiplex();
+    ~Multiplex();
+    int Multiplex::Client_Connect(char* host_name, int port);
+    int Multiplex::Setup_Host(bool is_server, char* host_name, int port);
+    int Multiplex::Process_Event();
+
+private:
+    void* peer;
+    void* client;
+};
+
