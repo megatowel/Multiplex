@@ -46,6 +46,31 @@
 #endif /* MTMULTIPLEX_EXPORT_H */
 
 #include <iostream>
+#include <map>
+#include <string>
+
+enum MultiplexActions {
+    EditChannel,
+    Server
+};
+
+MTMULTIPLEX_EXPORT typedef struct MultiplexInstanceUser {
+    unsigned int channel;
+    void* peer;
+};
+
+MTMULTIPLEX_EXPORT typedef struct MultiplexInstance {
+    unsigned int id = 0;
+    char* info;
+    std::map<int, MultiplexInstanceUser> users;
+
+};
+
+
+MTMULTIPLEX_EXPORT typedef struct MultiplexUser {
+    unsigned int userId;
+    int channelInstances[32];
+};
 
 MTMULTIPLEX_EXPORT int Init_ENet();
 
@@ -57,9 +82,12 @@ public:
     int Multiplex::Client_Connect(char* host_name, int port);
     int Multiplex::Setup_Host(bool is_server, char* host_name, int port);
     int Multiplex::Process_Event();
+    int Multiplex::Process_Server_Event();
+    int Multiplex::Send(const char* data, unsigned int dataLength, unsigned int channel, bool reliable);
 
 private:
     void* peer;
     void* client;
+    unsigned int clientIdIncrement = 0;
+    std::map<int, MultiplexInstance> Instances;
 };
-
