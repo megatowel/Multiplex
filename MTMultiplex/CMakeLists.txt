@@ -11,7 +11,9 @@ message("-- enet include: ${ENET_INCLUDE_DIR}")
 find_library(ENET_LIBRARY enet)
 message("-- enet library: ${ENET_LIBRARY}")
 find_package(nlohmann_json CONFIG REQUIRED)
-target_link_libraries(MTMultiplex PRIVATE nlohmann_json nlohmann_json::nlohmann_json)
+
+target_link_libraries(MTMultiplex PRIVATE "Ws2_32.lib")
+target_link_libraries(MTMultiplex PRIVATE "Winmm.lib")
 
 target_include_directories(MTMultiplex PRIVATE ${ENET_INCLUDE_DIR})
 target_link_libraries(MTMultiplex PRIVATE ${ENET_LIBRARY})

@@ -5,11 +5,6 @@
 #include <nlohmann/json.hpp>
 #include "MTMultiplex.h"
 
-// This seems a bit hacky.
-// Taking any suggestion something to make this a little more neat.
-#pragma comment(lib, "Ws2_32.lib")
-#pragma comment(lib, "Winmm.lib")
-
 using json = nlohmann::json;
 using namespace std;
 
@@ -140,7 +135,9 @@ int Multiplex::Process_Event() {
                 json data = json::from_msgpack(packet_vector);
                 cout << data << endl;
                 cout << "From ID: " << data["i"] << endl;
-                cout << data["d"].get_binary().data() << endl;
+                if (data["d"].get_binary().data() != NULL) {
+                    cout << data["d"].get_binary().data() << endl;
+                }
             }
             /* Clean up the packet now that we're done using it. */
             enet_packet_destroy(event.packet);
