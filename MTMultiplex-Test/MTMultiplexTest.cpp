@@ -1,41 +1,75 @@
 #include "MTMultiplexTest.h"
-#include "MTMultiplex.h"
+#include "Client.h"
+#include "Server.h"
 using namespace std;
+using namespace Megatowel::Multiplex;
 
-void Events_Thread(Multiplex client)
+void events_thread(MultiplexClient client)
 {
 	while (true) {
-		client.Process_Event();
+		client.process_event();
 	}
 }
 
 int main(int argc, char** argv)
 {
-	if (Init_ENet() == 0) {
-		cout << strcmp(argv[1], "-server") << endl;
-		if (!strcmp(argv[1], "-server")) {
-			cout << "we called server." << endl;
-			
-			Multiplex server;
-			server.Setup_Host(true, "0.0.0.0", 3000);
-			while (true) {
-				server.Process_Server_Event();
+	if (init_enet() == 0) {
+		if (argc == 2) {
+			if (!strcmp(argv[1], "-server")) {
+				// Starting server without arguments
+				cout << "Starting Multiplex server (Bound to 0.0.0.0)" << endl;
+
+				MultiplexServer server;
+				if (server.setup("0.0.0.0", 3000)) {
+					cout << "Failed to start server." << endl;
+				}
+				while (true) {
+					server.process_event();
+				}
+				return 0;
+			}
+			if (!strcmp(argv[1], "-client")) {
+				// Starting client without arguments
+				cout << "-client requires additional arguments." << endl;
+				return 0;
 			}
 		}
-		else {
-			cout << "we called client." << endl;
-			Multiplex client;
-			client.Setup_Host(false, NULL, NULL);
-			client.Client_Connect("localhost", 3000);
-			std::thread t1(Events_Thread, client);
-			std::string message;
-			while (true) {
-				cout << "Type your message: ";
-				getline(cin, message);
-				client.Send(message.data(), message.size(), 1, true);
+		else if (argc == 3) {
+			if (!strcmp(argv[1], "-server")) {
+				// Starting server with arguments
+				cout << "Starting Multiplex server (Bound to " << argv[2] << ")" << endl;
+
+				MultiplexServer server;
+				if (server.setup(argv[2], 3000)) {
+					cout << "Failed to start server." << endl;
+				}
+				while (true) {
+					server.process_event();
+				}
+				return 0;
+
+			}
+			if (!strcmp(argv[1], "-client")) {
+				// Starting client with arguments
+				cout << "Starting Multiplex client (" << argv[2] << ")" << endl;
+				MultiplexClient client;
+				if (client.setup(argv[2], 3000)) {
+					cout << "Failed to start client." << endl;
+					return 1;
+				}
+				std::thread t1(events_thread, client);
+				std::string message;
+				while (true) {
+					cout << "Type your message: ";
+					getline(cin, message);
+					client.send(message.data(), message.size(), 1, true);
+				}
 			}
 		}
-		cout << "we called." << endl;
+		cout << "MTMultiplexTest.exe" << endl;
+		cout << "  Examples:" << endl;
+		cout << "    " << "MTMultiplexTest.exe" << " -client 127.0.0.1" << endl;
+		cout << "    " << "MTMultiplexTest.exe" << " -server (0.0.0.0)" << endl;
 		return 0;
 	}
 }

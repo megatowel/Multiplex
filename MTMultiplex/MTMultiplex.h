@@ -3,6 +3,7 @@
 
 #pragma once
 
+#pragma region Export defines
 #ifndef MTMULTIPLEX_EXPORT_H
 #define MTMULTIPLEX_EXPORT_H
 
@@ -12,10 +13,10 @@
 #else
 #  ifndef MTMULTIPLEX_EXPORT
 #    ifdef MTMultiplex_EXPORTS
-        /* We are building this library */
+		/* We are building this library */
 #      define MTMULTIPLEX_EXPORT __declspec(dllexport)
 #    else
-        /* We are using this library */
+		/* We are using this library */
 #      define MTMULTIPLEX_EXPORT __declspec(dllimport)
 #    endif
 #  endif
@@ -44,50 +45,44 @@
 #endif
 
 #endif /* MTMULTIPLEX_EXPORT_H */
+#pragma endregion
 
 #include <iostream>
 #include <map>
 #include <string>
 
-enum MultiplexActions {
-    EditChannel,
-    Server
-};
+namespace Megatowel {
+	namespace Multiplex {
 
-MTMULTIPLEX_EXPORT typedef struct MultiplexInstanceUser {
-    unsigned int channel;
-    void* peer;
-};
+		typedef enum MultiplexActions {
+			EditChannel,
+			Server
+		};
 
-MTMULTIPLEX_EXPORT typedef struct MultiplexInstance {
-    unsigned int id = 0;
-    char* info;
-    std::map<int, MultiplexInstanceUser> users;
+		// Used for sending.
+		typedef enum MultiplexSendFlags {
+			MT_SEND_RELIABLE = 1 << 1
+		};
 
-};
+		typedef struct MultiplexInstanceUser {
+			unsigned int channel;
+			void* peer;
+		};
 
+		typedef struct MultiplexInstance {
+			unsigned int id = 0;
+			char* info;
+			std::map<int, MultiplexInstanceUser> users;
 
-MTMULTIPLEX_EXPORT typedef struct MultiplexUser {
-    unsigned int userId;
-    int channelInstances[32];
-};
+		};
 
-MTMULTIPLEX_EXPORT int Init_ENet();
+		typedef struct MultiplexUser {
+			unsigned int userId;
+			int channelInstances[32];
+		};
 
-class MTMULTIPLEX_EXPORT Multiplex
-{
-public:
-    Multiplex();
-    ~Multiplex();
-    int Multiplex::Client_Connect(char* host_name, int port);
-    int Multiplex::Setup_Host(bool is_server, char* host_name, int port);
-    int Multiplex::Process_Event();
-    int Multiplex::Process_Server_Event();
-    int Multiplex::Send(const char* data, unsigned int dataLength, unsigned int channel, bool reliable);
+		// This needs to be called before Multiplex can work.
+		MTMULTIPLEX_EXPORT int init_enet();
 
-private:
-    void* peer;
-    void* client;
-    unsigned int clientIdIncrement = 0;
-    std::map<int, MultiplexInstance> Instances;
-};
+	}
+}
