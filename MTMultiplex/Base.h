@@ -2,9 +2,6 @@
 
 #include "MTMultiplex.h"
 
-#define MAX_MULTIPLEX_CHANNELS 33 /* The amount of channels to use. 0 for system, rest for instances. */
-#define MAX_MULTIPLEX_SERVER_CONNECTIONS 1024
-
 namespace Megatowel {
 	namespace Multiplex {
 		class MultiplexBase {
