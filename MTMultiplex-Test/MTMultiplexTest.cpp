@@ -7,7 +7,17 @@ using namespace Megatowel::Multiplex;
 void events_thread(MultiplexClient client)
 {
 	while (true) {
-		client.process_event();
+		MultiplexEvent mtmp_event = client.process_event(5000);
+		if (mtmp_event.eventType == MultiplexEventType::UserMessage) {
+			if (mtmp_event.data.size() != 0) {
+				cout << mtmp_event.fromUserId << ": ";
+				for (int i = 0; i <= mtmp_event.data.size() - 1; ++i)
+				{
+					cout << mtmp_event.data[i];
+				}
+				cout << endl;
+			}
+		}
 	}
 }
 
@@ -24,7 +34,7 @@ int main(int argc, char** argv)
 					cout << "Failed to start server." << endl;
 				}
 				while (true) {
-					server.process_event();
+					server.process_event(5000);
 				}
 				return 0;
 			}
@@ -44,7 +54,7 @@ int main(int argc, char** argv)
 					cout << "Failed to start server." << endl;
 				}
 				while (true) {
-					server.process_event();
+					server.process_event(5000);
 				}
 				return 0;
 

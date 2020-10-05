@@ -49,34 +49,60 @@
 
 #include <iostream>
 #include <map>
+#include <vector>
 #include <string>
 
-#define MAX_MULTIPLEX_CHANNELS 33 /* The amount of channels to use. 0 for system, rest for instances. */
+#define MAX_MULTIPLEX_CHANNELS 32 /* The amount of channels to use. 0 for system, rest for instances. */
 #define MAX_MULTIPLEX_SERVER_CONNECTIONS 1024
 
 namespace Megatowel {
 	namespace Multiplex {
 
-		typedef enum MultiplexActions {
-			EditChannel,
+		MTMULTIPLEX_EXPORT enum class MultiplexActions {
+			EditChannel = 0,
 			Server
 		};
 
+		MTMULTIPLEX_EXPORT enum class MultiplexEventType {
+			UserMessage = 0,
+			Connected,
+			Disconnected,
+			UserSetup,
+			InstanceUserUpdate,
+			Error,
+			ServerCustom
+		};
+
+		MTMULTIPLEX_EXPORT enum class MultiplexErrors {
+			None = 0,
+			ENet,
+			NoEvent
+		};
+
 		// Used for sending.
-		typedef enum MultiplexSendFlags {
+		MTMULTIPLEX_EXPORT typedef enum MultiplexSendFlags {
 			MT_SEND_RELIABLE = 1 << 1
 		};
 
-		typedef struct MultiplexInstanceUser {
+		MTMULTIPLEX_EXPORT typedef struct MultiplexInstanceUser {
 			unsigned int channel;
 			void* peer;
 		};
 
-		typedef struct MultiplexInstance {
+		MTMULTIPLEX_EXPORT typedef struct MultiplexInstance {
 			unsigned int id = 0;
-			char* info;
+			char* info = NULL;
 			std::map<int, MultiplexInstanceUser> users;
+		};
 
+		MTMULTIPLEX_EXPORT typedef struct MultiplexEvent {
+			MultiplexEventType eventType;
+			unsigned int fromUserId = -1;
+			unsigned int channelId = 0;
+			unsigned int instanceId = 0;
+			std::vector<uint8_t> data;
+			MultiplexErrors Error = MultiplexErrors::None;
+			int ENet_Error;
 		};
 
 		typedef struct MultiplexUser {
