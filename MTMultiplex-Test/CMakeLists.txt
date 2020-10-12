@@ -13,3 +13,8 @@ target_link_libraries (MTMultiplexTest PRIVATE MTMultiplex)
 if (WIN32)
 	add_custom_command(TARGET MTMultiplexTest POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PROJECT_BINARY_DIR}/MTMultiplex/MTMultiplex.dll" "${PROJECT_BINARY_DIR}/MTMultiplex-Test/")
 endif()
+
+if (UNIX)
+	find_package (Threads)
+	target_link_libraries (MTMultiplex PRIVATE ${CMAKE_THREAD_LIBS_INIT})
+endif()

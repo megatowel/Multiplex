@@ -20,7 +20,5 @@ if (WIN32)
 	target_link_libraries(MTMultiplex PRIVATE "Ws2_32.lib")
 	target_link_libraries(MTMultiplex PRIVATE "Winmm.lib")
 elseif(UNIX)
-	find_package (Threads)
-	target_link_libraries (MTMultiplex PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
