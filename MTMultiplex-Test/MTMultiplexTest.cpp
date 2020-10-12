@@ -1,6 +1,7 @@
 #include "MTMultiplexTest.h"
 #include "Client.h"
 #include "Server.h"
+#include <cstring>
 using namespace std;
 using namespace Megatowel::Multiplex;
 

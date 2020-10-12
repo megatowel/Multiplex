@@ -1,11 +1,11 @@
 ﻿# CMakeList.txt : CMake project for MTMultiplex, include source and define
 # project specific logic here.
 #
-cmake_minimum_required (VERSION 3.16)
+cmake_minimum_required (VERSION 3.10)
 
 # Add source to this project's executable.
 add_library(MTMultiplex SHARED "Base.cpp" "Client.cpp" "Server.cpp")
-set_property(TARGET MTMultiplex PROPERTY CXX_STANDARD 11)
+set_property(TARGET MTMultiplex PROPERTY CXX_STANDARD 14)
 
 find_path(ENET_INCLUDE_DIR enet/enet.h)
 message("-- enet include: ${ENET_INCLUDE_DIR}")
