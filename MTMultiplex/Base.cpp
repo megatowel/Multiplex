@@ -6,8 +6,6 @@
 using json = nlohmann::json;
 using namespace std;
 
-
-
 namespace Megatowel {
 	namespace Multiplex {
 
@@ -21,12 +19,5 @@ namespace Megatowel {
 			atexit(enet_deinitialize);
 			return 0;
 		}
-
-
-		void MultiplexBase::poopshit()
-		{
-			return;
-		}
-
 	}
 }
