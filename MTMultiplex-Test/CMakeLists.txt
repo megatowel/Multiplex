@@ -16,5 +16,5 @@ endif()
 
 if (UNIX)
 	find_package (Threads)
-	target_link_libraries (MTMultiplex PRIVATE ${CMAKE_THREAD_LIBS_INIT})
+	target_link_libraries (MTMultiplexTest PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 endif()
