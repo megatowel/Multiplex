@@ -7,42 +7,21 @@
 #ifndef MTMULTIPLEX_EXPORT_H
 #define MTMULTIPLEX_EXPORT_H
 
-#ifdef MTMULTIPLEX_STATIC_DEFINE
-#  define MTMULTIPLEX_EXPORT
-#  define MTMULTIPLEX_NO_EXPORT
+#if defined(_MSC_VER)
+	//  Microsoft 
+#define MTMULTIPLEX_EXPORT __declspec(dllexport)
+#define MTMULTIPLEX_IMPORT __declspec(dllimport)
+#elif defined(__GNUC__)
+	//  GCC
+#define MTMULTIPLEX_EXPORT __attribute__((visibility("default")))
+#define MTMULTIPLEX_IMPORT
 #else
-#  ifndef MTMULTIPLEX_EXPORT
-#    ifdef MTMultiplex_EXPORTS
-		/* We are building this library */
-#      define MTMULTIPLEX_EXPORT __declspec(dllexport)
-#    else
-		/* We are using this library */
-#      define MTMULTIPLEX_EXPORT __declspec(dllimport)
-#    endif
-#  endif
-
-#  ifndef MTMULTIPLEX_NO_EXPORT
-#    define MTMULTIPLEX_NO_EXPORT 
-#  endif
+	//  do nothing and hope for the best?
+#define MTMULTIPLEX_EXPORT
+#define MTMULTIPLEX_IMPORT
+#pragma warning Unknown dynamic link import/export semantics.
 #endif
 
-#ifndef MTMULTIPLEX_DEPRECATED
-#  define MTMULTIPLEX_DEPRECATED __declspec(deprecated)
-#endif
-
-#ifndef MTMULTIPLEX_DEPRECATED_EXPORT
-#  define MTMULTIPLEX_DEPRECATED_EXPORT MTMULTIPLEX_EXPORT MTMULTIPLEX_DEPRECATED
-#endif
-
-#ifndef MTMULTIPLEX_DEPRECATED_NO_EXPORT
-#  define MTMULTIPLEX_DEPRECATED_NO_EXPORT MTMULTIPLEX_NO_EXPORT MTMULTIPLEX_DEPRECATED
-#endif
-
-#if 0 /* DEFINE_NO_DEPRECATED */
-#  ifndef MTMULTIPLEX_NO_DEPRECATED
-#    define MTMULTIPLEX_NO_DEPRECATED
-#  endif
-#endif
 
 #endif /* MTMULTIPLEX_EXPORT_H */
 #pragma endregion
