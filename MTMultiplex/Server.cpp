@@ -73,7 +73,7 @@ namespace Megatowel {
 						event.peer->address.port);
 
 					// Store any relevant client information here.
-					user = (MultiplexUser*)malloc(sizeof(MultiplexUser));
+					user = new MultiplexUser;
 					if (user == NULL) {
 						exit(2);
 					}

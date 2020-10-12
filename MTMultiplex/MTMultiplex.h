@@ -81,7 +81,7 @@ namespace Megatowel {
 
 		// Used for sending.
 		MTMULTIPLEX_EXPORT typedef enum MultiplexSendFlags {
-			MT_SEND_RELIABLE = 1 << 1
+			MT_SEND_RELIABLE = 1 << 0
 		};
 
 		MTMULTIPLEX_EXPORT typedef struct MultiplexInstanceUser {
