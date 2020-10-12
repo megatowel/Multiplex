@@ -181,7 +181,7 @@ namespace Megatowel {
 						}
 					}
 					// Remove user's data from memory.
-					free(user);
+					delete user;
 					// Reset the peer's client information.
 					event.peer->data = NULL;
 
