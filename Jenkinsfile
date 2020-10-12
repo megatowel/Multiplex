@@ -36,7 +36,7 @@ stage('Build')
             
             echo '----- CMake project was build successfully -----'
 			
-			zip('build.zip', true, '_build')
+			zip zipFile: 'build.zip', archive: true, dir: '_build'
         }
     }
 }
