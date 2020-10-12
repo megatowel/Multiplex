@@ -18,7 +18,7 @@ if (WIN32)
 	target_link_libraries(MTMultiplex PRIVATE "Winmm.lib")
 elseif(UNIX)
 	SET(CMAKE_CXX_FLAGS -pthread)
-	target_link_libraries(${PROJECT_NAME} pthread)
+	target_link_libraries(MTMultiplex PRIVATE pthread)
 endif()
 
 target_include_directories(MTMultiplex PRIVATE ${ENET_INCLUDE_DIR})
