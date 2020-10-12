@@ -35,6 +35,8 @@ stage('Build')
             runCommand( 'cmake --build _build' )
             
             echo '----- CMake project was build successfully -----'
+			
+			zip('build.zip', true, '_build')
         }
     }
 }
