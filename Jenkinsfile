@@ -30,9 +30,9 @@ stage('Build')
 			checkout scm
 			
             // run cmake generate and build
-            runCommand( 'cmake -E remove_directory _build')                             // make sure the build is clean
-            runCommand( 'cmake -H. -B_build ' + params.AdditionalGenerateArguments )
-            runCommand( 'cmake --build _build ' + params.AdditionalBuildArguments )
+            runCommand( 'cmake -E remove_directory _build' )                             // make sure the build is clean
+            runCommand( 'cmake -H. -B_build' )
+            runCommand( 'cmake --build _build' )
             
             echo '----- CMake project was build successfully -----'
         }
