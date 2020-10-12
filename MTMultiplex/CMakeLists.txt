@@ -17,7 +17,7 @@ if (WIN32)
 	target_link_libraries(MTMultiplex PRIVATE "Ws2_32.lib")
 	target_link_libraries(MTMultiplex PRIVATE "Winmm.lib")
 elseif(UNIX)
-	SET(CMAKE_CXX_FLAGS -pthread)
+	SET(CMAKE_CXX_FLAGS -lpthread)
 	target_link_libraries(MTMultiplex PRIVATE pthread)
 endif()
 
