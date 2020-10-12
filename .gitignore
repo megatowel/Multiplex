@@ -1,5 +1,18 @@
-# Visual studio user specific cache
+# Visual Studio user specific cache
 /.vs
 
-# CMake builds and cache
+# Visual Studio CMake builds and cache
 /out
+
+# CMake builds and cache
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
