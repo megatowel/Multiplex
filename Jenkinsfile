@@ -29,8 +29,8 @@ stage('Build')
         
             // checkout sources
             checkout([$class: 'GitSCM',
-                userRemoteConfigs: [[url: params.RepositoryUrl]],
-                branches: [[name: 'master']],
+                userRemoteConfigs: [[credentialsId: '47d94f21-3bb2-46da-bc47-294ff3a523a6', url: params.RepositoryUrl]],
+                branches: [[name: 'refs/remotes/origin/master']],
                 extensions: [[$class: 'CleanBeforeCheckout']]]
             )
        
