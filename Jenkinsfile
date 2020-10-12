@@ -36,7 +36,8 @@ stage('Build')
             
             echo '----- CMake project was build successfully -----'
 			
-			zip zipFile: 'build.zip', archive: true, dir: '_build'
+			zip zipFile: 'build.zip', archive: false, dir: '_build'
+			archiveArtifacts artifacts: 'build.zip', fingerprint: true
         }
     }
 }
