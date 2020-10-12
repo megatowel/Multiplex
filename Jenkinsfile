@@ -26,14 +26,9 @@ stage('Build')
         {   
             // debug info
             printJobParameter()
-        
-            // checkout sources
-            checkout([$class: 'GitSCM',
-                userRemoteConfigs: [[credentialsId: '47d94f21-3bb2-46da-bc47-294ff3a523a6', url: params.RepositoryUrl]],
-                branches: [[name: 'refs/remotes/origin/master']],
-                extensions: [[$class: 'CleanBeforeCheckout']]]
-            )
-       
+			
+			checkout scm
+			
             // run cmake generate and build
             runCommand( 'cmake -E remove_directory _build')                             // make sure the build is clean
             runCommand( 'cmake -H. -B_build ' + params.AdditionalGenerateArguments )
