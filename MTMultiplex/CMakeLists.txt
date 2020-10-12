@@ -16,6 +16,8 @@ find_package(nlohmann_json CONFIG REQUIRED)
 if (WIN32)
 	target_link_libraries(MTMultiplex PRIVATE "Ws2_32.lib")
 	target_link_libraries(MTMultiplex PRIVATE "Winmm.lib")
+elseif(UNIX)
+	SET(CMAKE_CXX_FLAGS -pthread)
 endif()
 
 target_include_directories(MTMultiplex PRIVATE ${ENET_INCLUDE_DIR})
