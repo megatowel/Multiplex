@@ -114,7 +114,9 @@ namespace Megatowel {
 						friendlyEvent.eventType = MultiplexEventType::UserMessage;
 						friendlyEvent.fromUserId = (unsigned int)data["i"];
 						friendlyEvent.channelId = (unsigned int)event.channelID;
-						friendlyEvent.data = data["d"].get_binary();
+						vector<uint8_t> bin = data["d"].get_binary();
+						friendlyEvent.dataSize = bin.size();
+						friendlyEvent.data = (char*)bin.data();
 						break;
 					}
 					// Clean up the packet now that we're done using it. 

@@ -10,9 +10,9 @@ void events_thread(MultiplexClient client)
 	while (true) {
 		MultiplexEvent mtmp_event = client.process_event(5000);
 		if (mtmp_event.eventType == MultiplexEventType::UserMessage) {
-			if (mtmp_event.data.size() != 0) {
+			if (mtmp_event.dataSize != 0) {
 				cout << mtmp_event.fromUserId << ": ";
-				for (int i = 0; i <= mtmp_event.data.size() - 1; ++i)
+				for (int i = 0; i <= mtmp_event.dataSize - 1; ++i)
 				{
 					cout << mtmp_event.data[i];
 				}
@@ -68,11 +68,13 @@ int main(int argc, char** argv)
 					cout << "Failed to start client." << endl;
 					return 1;
 				}
-				std::thread t1(events_thread, client);
+				//std::thread t1(events_thread, client);
 				std::string message;
+				getline(cin, message);
 				while (true) {
-					cout << "Type your message: ";
-					getline(cin, message);
+					//cout << "Type your message: ";
+					//getline(cin, message);
+					client.process_event(0);
 					client.send(message.data(), message.size(), 1, true);
 				}
 			}

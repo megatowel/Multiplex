@@ -81,7 +81,11 @@ namespace Megatowel {
 					for (int i = 0; i < MAX_MULTIPLEX_CHANNELS; i++) {
 						(user)->channelInstances[i] = 0;
 					}
-					(user)->userId = distr(eng);
+					unsigned int userId = 0;
+					while (userId == 0) {
+						userId = distr(eng);
+					}
+					(user)->userId = userId;
 					cout << (user)->userId << endl;
 					break;
 				case ENET_EVENT_TYPE_RECEIVE:
@@ -142,9 +146,10 @@ namespace Megatowel {
 						friendlyEvent.eventType = MultiplexEventType::UserMessage;
 						friendlyEvent.fromUserId = user->userId;
 						friendlyEvent.channelId = (unsigned int)event.channelID;
-						friendlyEvent.data = packet_vector;
+						friendlyEvent.data = (char*)event.packet->data;
+						friendlyEvent.dataSize = event.packet->dataLength;
 						if (currentInstanceId == 0) {
-							cout << "Failed to relay due to no instance assigned to channel " << event.channelID << endl;
+							friendlyEvent.Error = Megatowel::Multiplex::MultiplexErrors::FailedRelay;
 							break;
 						}
 						json relayMsg;

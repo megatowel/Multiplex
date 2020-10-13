@@ -4,7 +4,7 @@
 cmake_minimum_required (VERSION 3.10)
 
 # Add source to this project's executable.
-add_library(MTMultiplex SHARED "Base.cpp" "Client.cpp" "Server.cpp")
+add_library(MTMultiplex SHARED "Base.cpp" "Client.cpp" "Server.cpp" "External.cpp" "External.h")
 set_property(TARGET MTMultiplex PROPERTY CXX_STANDARD 14)
 
 find_path(ENET_INCLUDE_DIR enet/enet.h)

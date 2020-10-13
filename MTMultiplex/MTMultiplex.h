@@ -37,12 +37,12 @@
 namespace Megatowel {
 	namespace Multiplex {
 
-		MTMULTIPLEX_EXPORT enum class MultiplexActions {
+		typedef enum class MultiplexActions {
 			EditChannel = 0,
 			Server
 		};
 
-		MTMULTIPLEX_EXPORT enum class MultiplexEventType {
+		typedef enum class MultiplexEventType {
 			UserMessage = 0,
 			Connected,
 			Disconnected,
@@ -52,36 +52,38 @@ namespace Megatowel {
 			ServerCustom
 		};
 
-		MTMULTIPLEX_EXPORT enum class MultiplexErrors {
+		typedef enum class MultiplexErrors {
 			None = 0,
 			ENet,
-			NoEvent
+			NoEvent,
+			FailedRelay
 		};
 
 		// Used for sending.
-		MTMULTIPLEX_EXPORT typedef enum MultiplexSendFlags {
+		typedef enum MultiplexSendFlags {
 			MT_SEND_RELIABLE = 1 << 0
 		};
 
-		MTMULTIPLEX_EXPORT typedef struct MultiplexInstanceUser {
+		typedef struct MultiplexInstanceUser {
 			unsigned int channel;
 			void* peer;
 		};
 
-		MTMULTIPLEX_EXPORT typedef struct MultiplexInstance {
+		typedef struct MultiplexInstance {
 			unsigned int id = 0;
 			char* info = NULL;
 			std::map<int, MultiplexInstanceUser> users;
 		};
 
-		MTMULTIPLEX_EXPORT typedef struct MultiplexEvent {
+		typedef struct MultiplexEvent {
 			MultiplexEventType eventType;
 			unsigned int fromUserId = -1;
 			unsigned int channelId = 0;
 			unsigned int instanceId = 0;
-			std::vector<uint8_t> data;
+			char* data;
+			size_t dataSize = 0;
 			MultiplexErrors Error = MultiplexErrors::None;
-			int ENet_Error;
+			int ENetError;
 		};
 
 		typedef struct MultiplexUser {
@@ -90,7 +92,7 @@ namespace Megatowel {
 		};
 
 		// This needs to be called before Multiplex can work.
-		MTMULTIPLEX_EXPORT int init_enet();
+		extern "C" { MTMULTIPLEX_EXPORT int init_enet(); }
 
 	}
 }
