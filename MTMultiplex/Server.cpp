@@ -62,6 +62,7 @@ namespace Megatowel {
 			ENetEvent event;
 			MultiplexUser* user;
 			MultiplexEvent friendlyEvent;
+			unsigned int userId;
 			// Wait up to 5000 milliseconds for an event.
 			if (enet_host_service((ENetHost*)client, &event, timeout) > 0)
 			{
@@ -81,7 +82,7 @@ namespace Megatowel {
 					for (int i = 0; i < MAX_MULTIPLEX_CHANNELS; i++) {
 						(user)->channelInstances[i] = 0;
 					}
-					unsigned int userId = 0;
+					userId = 0;
 					while (userId == 0) {
 						userId = distr(eng);
 					}
