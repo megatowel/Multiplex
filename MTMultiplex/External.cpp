@@ -18,5 +18,5 @@ int c_send(MultiplexBase* multiplex, const char* data, unsigned int dataLength, 
 }
 
 MultiplexEvent* c_process_event(MultiplexBase* multiplex, unsigned int timeout) {
-	return &multiplex->process_event(timeout);
+	return &(multiplex->process_event(timeout));
 }
