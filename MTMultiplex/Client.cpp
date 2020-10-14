@@ -14,9 +14,11 @@ namespace Megatowel {
 	namespace Multiplex {
 
 		MultiplexClient::MultiplexClient() {
+			dataBuffer = new char[2048];
 		}
 
 		MultiplexClient::~MultiplexClient() {
+			delete dataBuffer;
 			if (client != NULL) {
 				enet_host_destroy((ENetHost*)client);
 			}
@@ -54,22 +56,7 @@ namespace Megatowel {
 			if (enet_host_service((ENetHost*)client, &event, 5000) > 0 &&
 				event.type == ENET_EVENT_TYPE_CONNECT)
 			{
-				cout << "Connected! Host: " << host_name << " Port: " << port << endl;
-				json data;
-				data["action"] = MultiplexActions::EditChannel;
-				data["channel"] = 1;
-				data["instance"] = 1;
-				auto rawData = json::to_msgpack(data);
-				cout << rawData.data() << endl;
-				cout << "Sent " << sizeof(rawData.data()) << endl;
-				// Create a reliable packet of size 7 containing "packet\0"
-				ENetPacket* packet = enet_packet_create(rawData.data(),
-					rawData.size() + 1,
-					ENET_PACKET_FLAG_RELIABLE);
-				// Send the packet to the peer over channel id 0. 
-				// One could also broadcast the packet by         
-				// enet_host_broadcast (host, 0, packet);         
-				enet_peer_send((ENetPeer*)peer, 0, packet);
+				return 0;
 			}
 			else
 			{
@@ -77,10 +64,8 @@ namespace Megatowel {
 				// received. Reset the peer in the event the 5 seconds   
 				// had run out without any significant event.            
 				enet_peer_reset((ENetPeer*)peer);
-				cout << "Connection failed. Host: " << host_name << " Port: " << port << endl;
 				return 1;
 			}
-			return 0;
 		}
 
 		int MultiplexClient::send(const char* data, unsigned int dataLength, unsigned int channel, int flags) {
@@ -92,6 +77,22 @@ namespace Megatowel {
 			return 0;
 		}
 
+		int MultiplexClient::send(unsigned long long userId, unsigned long long instance, const void* packet) {
+			return -2;
+		}
+		
+		int MultiplexClient::bind_channel(unsigned int channel, unsigned long long instance) {
+			json data;
+			data["action"] = MultiplexActions::EditChannel;
+			data["channel"] = channel;
+			data["instance"] = instance;
+			auto rawData = json::to_msgpack(data);
+			ENetPacket* packet = enet_packet_create(rawData.data(),
+				rawData.size(),
+				ENET_PACKET_FLAG_RELIABLE);
+			enet_peer_send((ENetPeer*)peer, 0, packet);
+			return 0;
+		}
 		MultiplexEvent MultiplexClient::process_event(unsigned int timeout) {
 			ENetEvent event;
 			MultiplexUser* user;
@@ -100,33 +101,70 @@ namespace Megatowel {
 			if (enet_host_service((ENetHost*)client, &event, timeout) > 0) {
 				switch (event.type)
 				{
-				case ENET_EVENT_TYPE_CONNECT:
+				case ENET_EVENT_TYPE_CONNECT: {
 					friendlyEvent.eventType = MultiplexEventType::Connected;
 					break;
-				case ENET_EVENT_TYPE_RECEIVE:
-					//printf("A packet of length %u containing %s on channel %u.\n",
-					//	(int)event.packet->dataLength,
-					//	event.packet->data,
-					//	event.channelID);
-					if (event.channelID != 0) {
-						std::vector<uint8_t> packet_vector(&event.packet->data[0], &event.packet->data[event.packet->dataLength - 1]);
-						json data = json::from_msgpack(packet_vector);
-						friendlyEvent.eventType = MultiplexEventType::UserMessage;
-						friendlyEvent.fromUserId = (unsigned int)data["i"];
-						friendlyEvent.channelId = (unsigned int)event.channelID;
-						vector<uint8_t> bin = data["d"].get_binary();
-						friendlyEvent.dataSize = bin.size();
-						friendlyEvent.data = (char*)bin.data();
-						break;
+				}
+				case ENET_EVENT_TYPE_RECEIVE: {
+					std::vector<uint8_t> packet_vector(&event.packet->data[0], &event.packet->data[event.packet->dataLength]);
+					json data = json::from_msgpack(packet_vector);
+					switch ((MultiplexSystemResponses)data["r"])
+						{
+						case MultiplexSystemResponses::Message: {
+							friendlyEvent.eventType = MultiplexEventType::UserMessage;
+							friendlyEvent.fromUserId = (unsigned int)data["i"];
+							friendlyEvent.channelId = (unsigned int)event.channelID;
+							vector<uint8_t> bin = data["d"].get_binary();
+
+							// Copy from vector.
+							// We don't want to use .data() because reference out of scope is bad ;/
+							for (int i = 0; i < (unsigned int)bin.size(); ++i)
+							{
+								dataBuffer[i] = bin[i];
+							}
+
+							// Very important now that we have a data buffer.
+							friendlyEvent.dataSize = (unsigned int)bin.size();
+
+							friendlyEvent.data = dataBuffer;
+							break;
+						}
+						case MultiplexSystemResponses::UserSetup: {
+							friendlyEvent.eventType = MultiplexEventType::UserSetup;
+							friendlyEvent.fromUserId = (unsigned int)data["i"];
+							break;
+						}
+						case MultiplexSystemResponses::InstanceConnected: {
+							friendlyEvent.eventType = MultiplexEventType::InstanceConnected;
+							// Nothing here for the moment
+							break;
+						}
+						case MultiplexSystemResponses::InstanceUserJoin: {
+							friendlyEvent.eventType = MultiplexEventType::InstanceUserUpdate;
+							friendlyEvent.fromUserId = (unsigned int)data["i"];
+							friendlyEvent.channelId = (unsigned int)event.channelID;
+							friendlyEvent.instanceId = (unsigned int)event.channelID;
+							break;
+						}
+						case MultiplexSystemResponses::InstanceUserLeave: {
+							friendlyEvent.eventType = MultiplexEventType::InstanceUserUpdate;
+							friendlyEvent.fromUserId = (unsigned int)data["i"];
+							friendlyEvent.channelId = (unsigned int)event.channelID;
+							friendlyEvent.instanceId = 0;
+							break;
+						}
+
 					}
+					break;
 					// Clean up the packet now that we're done using it. 
 					enet_packet_destroy(event.packet);
-					
-				case ENET_EVENT_TYPE_DISCONNECT:
+				}
+				case ENET_EVENT_TYPE_DISCONNECT: {
 					enet_peer_reset((ENetPeer*)peer);
 					cout << "Disconnected from server. State:" << event.peer->state << endl;
 					friendlyEvent.eventType = MultiplexEventType::Disconnected;
 					break;
+				}
 				}
 			}
 			else {

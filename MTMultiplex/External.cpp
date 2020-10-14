@@ -17,7 +17,11 @@ int c_send(MultiplexBase* multiplex, const char* data, unsigned int dataLength, 
 	return multiplex->send(data, dataLength, channel, flags);
 }
 
-MultiplexEvent* c_process_event(MultiplexBase* multiplex, unsigned int timeout) {
+int c_bind_channel(MultiplexBase* multiplex, unsigned int channel, unsigned long long instance) {
+	return multiplex->bind_channel(channel, instance);
+}
+
+MultiplexEvent c_process_event(MultiplexBase* multiplex, unsigned int timeout) {
 	MultiplexEvent mtmp_event = multiplex->process_event(timeout);
-	return &mtmp_event;
+	return mtmp_event;
 }

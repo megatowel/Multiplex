@@ -12,7 +12,7 @@ void events_thread(MultiplexClient client)
 		if (mtmp_event.eventType == MultiplexEventType::UserMessage) {
 			if (mtmp_event.dataSize != 0) {
 				cout << mtmp_event.fromUserId << ": ";
-				for (int i = 0; i <= mtmp_event.dataSize - 1; ++i)
+				for (int i = 0; i < mtmp_event.dataSize; ++i)
 				{
 					cout << mtmp_event.data[i];
 				}
@@ -68,6 +68,7 @@ int main(int argc, char** argv)
 					cout << "Failed to start client." << endl;
 					return 1;
 				}
+				client.bind_channel(1, 1);
 				std::thread t1(events_thread, client);
 				std::string message;
 				while (true) {
@@ -77,6 +78,14 @@ int main(int argc, char** argv)
 				}
 			}
 		}
+		// Starting client without arguments
+		cout << "Starting Multiplex client (no args)" << endl;
+		MultiplexClient client;
+		if (client.setup("localhost", 3000)) {
+			cout << "Failed to start client." << endl;
+			return 1;
+		}
+
 		cout << "MTMultiplexTest.exe" << endl;
 		cout << "  Examples:" << endl;
 		cout << "    " << "MTMultiplexTest.exe" << " -client 127.0.0.1" << endl;

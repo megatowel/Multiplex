@@ -49,26 +49,63 @@ namespace Megatowel {
 			return 0;
 		}
 
-		int MultiplexServer::send(const char* data, unsigned int dataLength, unsigned int channel, int flags) {
-			ENetPacket* packet2 = enet_packet_create(data,
-				(size_t)dataLength + (size_t)0x0001,
-				(int)flags && MT_SEND_RELIABLE);
-			enet_peer_send((ENetPeer*)peer, channel, packet2);
-			enet_host_flush((ENetHost*)client);
+		int MultiplexServer::send(unsigned long long userId, unsigned long long instance, const void* packet) {
+			if (userId == 0) {
+				for (std::pair<int, MultiplexInstanceUser> const element : Instances[instance].users) {
+					MultiplexInstanceUser instanceUser = element.second;
+					ENetPeer* instanceUserPeer = (ENetPeer*)instanceUser.peer;
+					enet_peer_send(instanceUserPeer, instanceUser.channel, (ENetPacket*)packet);
+				}
+			}
+			else {
+				MultiplexInstanceUser instanceUser = Instances[instance].users[userId];
+				ENetPeer* instanceUserPeer = (ENetPeer*)instanceUser.peer;
+				enet_peer_send(instanceUserPeer, instanceUser.channel, (ENetPacket*)packet);
+			}
 			return 0;
+		}
+
+		int MultiplexServer::send(const char* data, unsigned int dataLength, unsigned int channel, int flags) {
+			return -2;
+		}
+		int MultiplexServer::bind_channel(unsigned int channel, unsigned long long instance) {
+			return -2;
+		}
+
+		void* MultiplexServer::create_system_packet(MultiplexSystemResponses responseType,
+			unsigned long long userId, int flags, std::vector<uint8_t> data) {
+			json msg;
+			msg["r"] = responseType;
+			msg["i"] = userId;
+			msg["d"] = json::binary_t(data);
+			vector<uint8_t> jsonData = json::to_msgpack(msg);
+			return (void*)enet_packet_create(jsonData.data(),
+				jsonData.size(),
+				flags);
+		}
+
+		void* MultiplexServer::create_system_packet(MultiplexSystemResponses responseType,
+			unsigned long long userId, int flags) {
+			json msg;
+			msg["r"] = responseType;
+			msg["i"] = userId;
+			vector<uint8_t> jsonData = json::to_msgpack(msg);
+			return (void*)enet_packet_create(jsonData.data(),
+				jsonData.size(),
+				flags);
 		}
 
 		MultiplexEvent MultiplexServer::process_event(unsigned int timeout) {
 			ENetEvent event;
 			MultiplexUser* user;
 			MultiplexEvent friendlyEvent;
-			unsigned int userId;
+			
 			// Wait up to 5000 milliseconds for an event.
 			if (enet_host_service((ENetHost*)client, &event, timeout) > 0)
 			{
 				switch (event.type)
 				{
-				case ENET_EVENT_TYPE_CONNECT:
+				case ENET_EVENT_TYPE_CONNECT: {
 					printf("A new client connected from %x:%u.\n",
 						event.peer->address.host,
 						event.peer->address.port);
@@ -82,25 +119,21 @@ namespace Megatowel {
 					for (int i = 0; i < MAX_MULTIPLEX_CHANNELS; i++) {
 						(user)->channelInstances[i] = 0;
 					}
-					userId = 0;
+					unsigned int userId = 0;
 					while (userId == 0) {
 						userId = distr(eng);
 					}
 					(user)->userId = userId;
 					cout << (user)->userId << endl;
-					break;
-				case ENET_EVENT_TYPE_RECEIVE:
+					ENetPacket* packet = (ENetPacket*)create_system_packet(MultiplexSystemResponses::UserSetup, user->userId, 0);
+					enet_peer_send(event.peer, 0, packet);
+					break;}
+				case ENET_EVENT_TYPE_RECEIVE: {
 					user = (MultiplexUser*)event.peer->data;
 					friendlyEvent.fromUserId = user->userId;
-
-					printf("A packet of length %u containing %s was received from %s on channel %u.\n",
-						(int)event.packet->dataLength,
-						event.packet->data,
-						to_string(user->userId),
-						event.channelID);
-
+					
 					if (event.channelID == 0) {
-						std::vector<uint8_t> packet_vector(&event.packet->data[0], &event.packet->data[event.packet->dataLength - 1]);
+						std::vector<uint8_t> packet_vector(&event.packet->data[0], &event.packet->data[(int)event.packet->dataLength]);
 						json data = json::from_msgpack(packet_vector);
 						MultiplexActions action = data["action"];
 						cout << data << endl;
@@ -114,13 +147,19 @@ namespace Megatowel {
 							friendlyEvent.instanceId = instanceId;
 
 							unsigned int oldInstance = user->channelInstances[editingChannel - 1];
+
+							ENetPacket* leavePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceUserLeave, user->userId, 0);
+							send(0, oldInstance, leavePacket);
+
 							if (oldInstance != 0) {
 								Instances[oldInstance].users.erase(user->userId);
 							}
-							cout << user->userId << endl;
 
 							if (instanceId == 0) {
 								user->channelInstances[editingChannel - 1] = 0;
+								if (Instances[oldInstance].users.size() == 0) {
+									Instances.erase(Instances[oldInstance].id);
+								}
 								break;
 							}
 							if (Instances.count(instanceId) == 0) {
@@ -136,7 +175,9 @@ namespace Megatowel {
 
 							user->channelInstances[editingChannel - 1] = instanceId;
 
-							cout << Instances[instanceId].id << endl;
+							ENetPacket* joinPacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceUserJoin, user->userId, 0);
+							send(0, instanceId, joinPacket);
+							
 
 							break;
 						}
@@ -150,28 +191,19 @@ namespace Megatowel {
 						friendlyEvent.data = (char*)event.packet->data;
 						friendlyEvent.dataSize = event.packet->dataLength;
 						if (currentInstanceId == 0) {
-							friendlyEvent.Error = Megatowel::Multiplex::MultiplexErrors::FailedRelay;
+							friendlyEvent.Error = MultiplexErrors::FailedRelay;
 							break;
 						}
-						json relayMsg;
-						relayMsg["i"] = user->userId;
-						relayMsg["d"] = json::binary_t(packet_vector);
-						auto jsonData = json::to_msgpack(relayMsg);
-						ENetPacket* packet = enet_packet_create(jsonData.data(),
-							jsonData.size() + 1,
-							event.packet->flags);
-						cout << "Sending to " << Instances[currentInstanceId].users.size() << " users" << endl;
-						for (std::pair<int, MultiplexInstanceUser> const element : Instances[currentInstanceId].users) {
-							MultiplexInstanceUser instanceUser = element.second;
-							ENetPeer* instanceUserPeer = (ENetPeer*)instanceUser.peer;
-							enet_peer_send(instanceUserPeer, instanceUser.channel, packet);
-						}
+
+						ENetPacket* relayPacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::Message, user->userId, event.packet->flags, packet_vector);
+						
+						send(0, currentInstanceId, relayPacket);
 					}
 					// Clean up the packet now that we're done using it.
 					enet_packet_destroy(event.packet);
 					break;
-
-				case ENET_EVENT_TYPE_DISCONNECT:
+				}
+				case ENET_EVENT_TYPE_DISCONNECT: {
 					cout << "Disconnecting... State: " << event.peer->state << endl;
 					user = (MultiplexUser*)event.peer->data;
 					cout << "User ID: " << user->userId << " has disconnected." << endl;
@@ -184,13 +216,17 @@ namespace Megatowel {
 							if (Instances[oldInstance].users.size() == 0) {
 								Instances.erase(Instances[oldInstance].id);
 							}
+							else {
+								ENetPacket* packet = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceUserLeave, user->userId, 1);
+								send(0, oldInstance, packet);
+							}
 						}
 					}
 					// Remove user's data from memory.
 					delete user;
 					// Reset the peer's client information.
 					event.peer->data = NULL;
-
+				}
 				}
 			}
 			else {

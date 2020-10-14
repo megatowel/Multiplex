@@ -31,7 +31,7 @@
 #include <vector>
 #include <string>
 
-#define MAX_MULTIPLEX_CHANNELS 32 /* The amount of channels to use. 0 for system, rest for instances. */
+#define MAX_MULTIPLEX_CHANNELS 32 /* The amount of instance channels. */
 #define MAX_MULTIPLEX_SERVER_CONNECTIONS 1024
 
 namespace Megatowel {
@@ -42,13 +42,22 @@ namespace Megatowel {
 			Server
 		};
 
-		typedef enum class MultiplexEventType {
-			UserMessage = 0,
-			Connected,
-			Disconnected,
+		typedef enum class MultiplexSystemResponses {
+			Message = 0,
 			UserSetup,
+			InstanceConnected,
+			InstanceUserJoin,
+			InstanceUserLeave
+		};
+
+		typedef enum class MultiplexEventType {
+			Error = -1,
+			UserMessage,
+			UserSetup,
+			Connected,
+			InstanceConnected,
+			Disconnected,
 			InstanceUserUpdate,
-			Error,
 			ServerCustom
 		};
 
@@ -70,24 +79,24 @@ namespace Megatowel {
 		};
 
 		typedef struct MultiplexInstance {
-			unsigned int id = 0;
-			char* info = NULL;
+			unsigned long long id = 0;
+			char* info = nullptr;
 			std::map<int, MultiplexInstanceUser> users;
 		};
 
 		typedef struct MultiplexEvent {
-			MultiplexEventType eventType;
-			unsigned int fromUserId = -1;
+			MultiplexEventType eventType = MultiplexEventType::Error;
+			unsigned long long fromUserId = 0;
 			unsigned int channelId = 0;
-			unsigned int instanceId = 0;
-			char* data;
-			size_t dataSize = 0;
+			unsigned long long instanceId = 0;
+			char* data = nullptr;
+			unsigned int dataSize = 0;
 			MultiplexErrors Error = MultiplexErrors::None;
-			int ENetError;
+			int ENetError = 0;
 		};
 
 		typedef struct MultiplexUser {
-			unsigned int userId;
+			unsigned long long userId;
 			int channelInstances[32];
 		};
 
