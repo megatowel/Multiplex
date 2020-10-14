@@ -16,9 +16,9 @@ namespace Megatowel {
 			MTMULTIPLEX_EXPORT int bind_channel(unsigned int channel, unsigned long long instance) override;
 
 		protected:
-			void* MultiplexServer::create_system_packet(Megatowel::Multiplex::MultiplexSystemResponses responseType,
+			void* create_system_packet(Megatowel::Multiplex::MultiplexSystemResponses responseType,
 				unsigned long long userId, int flags, std::vector<uint8_t> data);
-			void* MultiplexServer::create_system_packet(Megatowel::Multiplex::MultiplexSystemResponses responseType,
+			void* create_system_packet(Megatowel::Multiplex::MultiplexSystemResponses responseType,
 				unsigned long long userId, int flags);
 			void* client = NULL;
 			void* peer = NULL;
