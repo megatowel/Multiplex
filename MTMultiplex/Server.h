@@ -22,7 +22,7 @@ namespace Megatowel {
 				unsigned long long userId, int flags);
 			void* client = NULL;
 			void* peer = NULL;
-			std::map<int, MultiplexInstance> Instances;
+			std::map<unsigned long long, MultiplexInstance> Instances;
 		};
 	}
 }

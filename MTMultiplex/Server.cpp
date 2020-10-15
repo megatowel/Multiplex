@@ -51,7 +51,7 @@ namespace Megatowel {
 
 		int MultiplexServer::send(unsigned long long userId, unsigned long long instance, const void* packet) {
 			if (userId == 0) {
-				for (std::pair<int, MultiplexInstanceUser> const element : Instances[instance].users) {
+				for (const std::pair<unsigned long long, MultiplexInstanceUser> &element : Instances[instance].users) {
 					MultiplexInstanceUser instanceUser = element.second;
 					ENetPeer* instanceUserPeer = (ENetPeer*)instanceUser.peer;
 					enet_peer_send(instanceUserPeer, instanceUser.channel, (ENetPacket*)packet);
@@ -119,7 +119,7 @@ namespace Megatowel {
 					for (int i = 0; i < MAX_MULTIPLEX_CHANNELS; i++) {
 						(user)->channelInstances[i] = 0;
 					}
-					unsigned int userId = 0;
+					unsigned long long userId = 0;
 					while (userId == 0) {
 						userId = distr(eng);
 					}
@@ -140,13 +140,13 @@ namespace Megatowel {
 						switch (action) {
 						case MultiplexActions::EditChannel:
 							unsigned int editingChannel = data["channel"];
-							unsigned int instanceId = data["instance"];
+							unsigned long long instanceId = data["instance"];
 
 							friendlyEvent.eventType = MultiplexEventType::InstanceUserUpdate;
 							friendlyEvent.channelId = editingChannel;
 							friendlyEvent.instanceId = instanceId;
 
-							unsigned int oldInstance = user->channelInstances[editingChannel - 1];
+							unsigned long long oldInstance = user->channelInstances[editingChannel - 1];
 
 							ENetPacket* leavePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceUserLeave, user->userId, 0);
 							send(0, oldInstance, leavePacket);
@@ -164,14 +164,14 @@ namespace Megatowel {
 							}
 							if (Instances.count(instanceId) == 0) {
 								cout << "new instance" << endl;
-								MultiplexInstance instance{ instanceId, "", std::map<int, MultiplexInstanceUser>() };
+								MultiplexInstance instance{ instanceId, "", std::map<unsigned long long, MultiplexInstanceUser>() };
 
-								Instances.insert(std::pair<int, MultiplexInstance>(instanceId, instance));
+								Instances.insert(std::pair<unsigned long long, MultiplexInstance>(instanceId, instance));
 							}
 							MultiplexInstanceUser instanceUser;
 							instanceUser.channel = editingChannel;
 							instanceUser.peer = event.peer;
-							Instances[instanceId].users.insert(std::pair<int, MultiplexInstanceUser>(user->userId, instanceUser));
+							Instances[instanceId].users.insert(std::pair<unsigned long long, MultiplexInstanceUser>(user->userId, instanceUser));
 
 							user->channelInstances[editingChannel - 1] = instanceId;
 
@@ -184,12 +184,12 @@ namespace Megatowel {
 					}
 					else {
 						std::vector<uint8_t> packet_vector(&event.packet->data[0], &event.packet->data[event.packet->dataLength - 1]);
-						unsigned int currentInstanceId = user->channelInstances[event.channelID - 1];
+						unsigned long long currentInstanceId = user->channelInstances[event.channelID - 1];
 						friendlyEvent.eventType = MultiplexEventType::UserMessage;
 						friendlyEvent.fromUserId = user->userId;
 						friendlyEvent.channelId = (unsigned int)event.channelID;
 						friendlyEvent.data = (char*)event.packet->data;
-						friendlyEvent.dataSize = event.packet->dataLength;
+						friendlyEvent.dataSize = (unsigned int)event.packet->dataLength;
 						if (currentInstanceId == 0) {
 							friendlyEvent.Error = MultiplexErrors::FailedRelay;
 							break;
@@ -210,7 +210,7 @@ namespace Megatowel {
 					friendlyEvent.eventType = MultiplexEventType::Disconnected;
 					friendlyEvent.fromUserId = user->userId;
 					for (int i = 0; i < MAX_MULTIPLEX_CHANNELS; i++) {
-						unsigned int oldInstance = user->channelInstances[i];
+						unsigned long long oldInstance = user->channelInstances[i];
 						if (oldInstance != 0) {
 							Instances[oldInstance].users.erase(user->userId);
 							if (Instances[oldInstance].users.size() == 0) {
