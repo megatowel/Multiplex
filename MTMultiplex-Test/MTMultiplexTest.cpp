@@ -12,7 +12,7 @@ void events_thread(MultiplexClient client)
 		if (mtmp_event.eventType == MultiplexEventType::UserMessage) {
 			if (mtmp_event.dataSize != 0) {
 				cout << mtmp_event.fromUserId << ": ";
-				for (int i = 0; i < mtmp_event.dataSize; ++i)
+				for (unsigned int i = 0; i < mtmp_event.dataSize; ++i)
 				{
 					cout << mtmp_event.data[i];
 				}

@@ -73,7 +73,9 @@ namespace Megatowel {
 				(size_t)dataLength + (size_t)0x00000001,
 				(int)flags && MT_SEND_RELIABLE);
 			enet_peer_send((ENetPeer*)peer, channel, packet2);
-			enet_host_flush((ENetHost*)client);
+			if ((int)flags && MT_NO_FLUSH) {
+				enet_host_flush((ENetHost*)client);
+			}
 			return 0;
 		}
 
@@ -91,11 +93,11 @@ namespace Megatowel {
 				rawData.size(),
 				ENET_PACKET_FLAG_RELIABLE);
 			enet_peer_send((ENetPeer*)peer, 0, packet);
+			enet_host_flush((ENetHost*)client);
 			return 0;
 		}
 		MultiplexEvent MultiplexClient::process_event(unsigned int timeout) {
 			ENetEvent event;
-			MultiplexUser* user;
 			MultiplexEvent friendlyEvent;
 			// Wait for an event. 
 			if (enet_host_service((ENetHost*)client, &event, timeout) > 0) {
@@ -112,13 +114,13 @@ namespace Megatowel {
 						{
 						case MultiplexSystemResponses::Message: {
 							friendlyEvent.eventType = MultiplexEventType::UserMessage;
-							friendlyEvent.fromUserId = (unsigned int)data["i"];
+							friendlyEvent.fromUserId = (unsigned long long)data["i"];
 							friendlyEvent.channelId = (unsigned int)event.channelID;
 							vector<uint8_t> bin = data["d"].get_binary();
 
 							// Copy from vector.
 							// We don't want to use .data() because reference out of scope is bad ;/
-							for (int i = 0; i < (unsigned int)bin.size(); ++i)
+							for (unsigned int i = 0; i < (unsigned int)bin.size(); ++i)
 							{
 								dataBuffer[i] = bin[i];
 							}
@@ -131,7 +133,7 @@ namespace Megatowel {
 						}
 						case MultiplexSystemResponses::UserSetup: {
 							friendlyEvent.eventType = MultiplexEventType::UserSetup;
-							friendlyEvent.fromUserId = (unsigned int)data["i"];
+							friendlyEvent.fromUserId = (unsigned long long)data["i"];
 							break;
 						}
 						case MultiplexSystemResponses::InstanceConnected: {
@@ -141,14 +143,14 @@ namespace Megatowel {
 						}
 						case MultiplexSystemResponses::InstanceUserJoin: {
 							friendlyEvent.eventType = MultiplexEventType::InstanceUserUpdate;
-							friendlyEvent.fromUserId = (unsigned int)data["i"];
+							friendlyEvent.fromUserId = (unsigned long long)data["i"];
 							friendlyEvent.channelId = (unsigned int)event.channelID;
 							friendlyEvent.instanceId = (unsigned int)event.channelID;
 							break;
 						}
 						case MultiplexSystemResponses::InstanceUserLeave: {
 							friendlyEvent.eventType = MultiplexEventType::InstanceUserUpdate;
-							friendlyEvent.fromUserId = (unsigned int)data["i"];
+							friendlyEvent.fromUserId = (unsigned long long)data["i"];
 							friendlyEvent.channelId = (unsigned int)event.channelID;
 							friendlyEvent.instanceId = 0;
 							break;

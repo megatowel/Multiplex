@@ -9,6 +9,11 @@ MultiplexServer* c_make_server() {
 	return new MultiplexServer;
 }
 
+int c_destroy(MultiplexBase* multiplex) {
+	delete multiplex;
+	return 0;
+}
+
 int c_setup(MultiplexBase* multiplex, char* hostname, int port) {
 	return multiplex->setup(hostname, port);
 }
