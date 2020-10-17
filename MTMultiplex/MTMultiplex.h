@@ -92,6 +92,8 @@ namespace Megatowel {
 			unsigned long long instanceId = 0;
 			char* data = nullptr;
 			unsigned int dataSize = 0;
+			char* info = nullptr;
+			unsigned int infoSize = 0;
 			MultiplexErrors Error = MultiplexErrors::None;
 			int ENetError = 0;
 		};
@@ -99,6 +101,7 @@ namespace Megatowel {
 		struct MultiplexUser {
 			unsigned long long userId;
 			unsigned long long channelInstances[32];
+			void* peer;
 		};
 
 		// This needs to be called before Multiplex can work.

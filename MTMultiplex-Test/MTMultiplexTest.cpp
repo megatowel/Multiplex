@@ -5,12 +5,27 @@
 using namespace std;
 using namespace Megatowel::Multiplex;
 
+char* info = "chat";
+
 void events_thread(MultiplexClient client)
 {
 	while (true) {
 		MultiplexEvent mtmp_event = client.process_event(5000);
 		if (mtmp_event.eventType == MultiplexEventType::UserMessage) {
-			if (mtmp_event.dataSize != 0) {
+			bool isChat = true;
+			
+			if (mtmp_event.infoSize != (unsigned int)4) {
+				isChat = false;
+			}
+			else {
+				for (unsigned int i = 0; i < mtmp_event.infoSize; ++i)
+				{
+					if (mtmp_event.info[i] != info[i]) {
+						isChat = false;
+					}
+				}
+			}
+			if (isChat) {
 				cout << mtmp_event.fromUserId << ": ";
 				for (unsigned int i = 0; i < mtmp_event.dataSize; ++i)
 				{
@@ -74,7 +89,7 @@ int main(int argc, char** argv)
 				while (true) {
 					cout << "Type your message: ";
 					getline(cin, message);
-					client.send(message.data(), message.size(), 1, true);
+					client.send(message.data(), message.size(), info, (unsigned int)4, 1, true);
 				}
 			}
 		}

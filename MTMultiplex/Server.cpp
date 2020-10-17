@@ -19,9 +19,13 @@ namespace Megatowel {
 	namespace Multiplex {
 
 		MultiplexServer::MultiplexServer() {
+			dataBuffer = new char[2048];
+			infoBuffer = new char[128];
 		}
 
 		MultiplexServer::~MultiplexServer() {
+			delete dataBuffer;
+			delete infoBuffer;
 			if (client != NULL) {
 				enet_host_destroy((ENetHost*)client);
 			}
@@ -65,19 +69,55 @@ namespace Megatowel {
 			return 0;
 		}
 
-		int MultiplexServer::send(const char* data, unsigned int dataLength, unsigned int channel, int flags) {
+		int MultiplexServer::send(const char* data, unsigned int dataLength, const char* info, unsigned int infoLength, unsigned int channel, int flags) {
 			return -2;
 		}
+
 		int MultiplexServer::bind_channel(unsigned int channel, unsigned long long instance) {
 			return -2;
 		}
 
+		int MultiplexServer::bind_channel(unsigned long long userId, unsigned int editingChannel, unsigned long long instanceId) {
+			MultiplexUser* user = Users[userId];
+			unsigned long long oldInstance = user->channelInstances[editingChannel - 1];
+
+			if (oldInstance != 0) {
+				ENetPacket* leavePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceUserLeave, user->userId, 0);
+				send(0, oldInstance, leavePacket);
+				Instances[oldInstance].users.erase(user->userId);
+			}
+
+			if (instanceId == 0) {
+				user->channelInstances[editingChannel - 1] = 0;
+				if (Instances[oldInstance].users.size() == 0) {
+					Instances.erase(Instances[oldInstance].id);
+				}
+				return 1;
+			}
+			if (Instances.count(instanceId) == 0) {
+				MultiplexInstance instance{ instanceId, "", std::map<unsigned long long, MultiplexInstanceUser>() };
+
+				Instances.insert(std::pair<unsigned long long, MultiplexInstance>(instanceId, instance));
+			}
+			MultiplexInstanceUser instanceUser;
+			instanceUser.channel = editingChannel;
+			instanceUser.peer = user->peer;
+			Instances[instanceId].users.insert(std::pair<unsigned long long, MultiplexInstanceUser>(user->userId, instanceUser));
+
+			user->channelInstances[editingChannel - 1] = instanceId;
+
+			ENetPacket* joinPacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceUserJoin, user->userId, 0);
+			send(0, instanceId, joinPacket);
+			return 0;
+		}
+
 		void* MultiplexServer::create_system_packet(MultiplexSystemResponses responseType,
-			unsigned long long userId, int flags, std::vector<uint8_t> data) {
+			unsigned long long userId, int flags, std::vector<uint8_t> data, std::vector<uint8_t> info) {
 			json msg;
 			msg["r"] = responseType;
-			msg["i"] = userId;
-			msg["d"] = json::binary_t(data);
+			msg["u"] = userId;
+			msg["d"] = data;
+			msg["i"] = info;
 			vector<uint8_t> jsonData = json::to_msgpack(msg);
 			return (void*)enet_packet_create(jsonData.data(),
 				jsonData.size(),
@@ -88,7 +128,7 @@ namespace Megatowel {
 			unsigned long long userId, int flags) {
 			json msg;
 			msg["r"] = responseType;
-			msg["i"] = userId;
+			msg["u"] = userId;
 			vector<uint8_t> jsonData = json::to_msgpack(msg);
 			return (void*)enet_packet_create(jsonData.data(),
 				jsonData.size(),
@@ -117,24 +157,25 @@ namespace Megatowel {
 					}
 					event.peer->data = user;
 					for (int i = 0; i < MAX_MULTIPLEX_CHANNELS; i++) {
-						(user)->channelInstances[i] = 0;
+						user->channelInstances[i] = 0;
 					}
 					unsigned long long userId = 0;
 					while (userId == 0) {
 						userId = distr(eng);
 					}
-					(user)->userId = userId;
-					cout << (user)->userId << endl;
+					user->userId = userId;
+					user->peer = (void*)event.peer;
+					cout << user->userId << endl;
+					Users.insert(std::pair<unsigned long long, MultiplexUser*>(userId, user));
 					ENetPacket* packet = (ENetPacket*)create_system_packet(MultiplexSystemResponses::UserSetup, user->userId, 0);
 					enet_peer_send(event.peer, 0, packet);
 					break;}
 				case ENET_EVENT_TYPE_RECEIVE: {
 					user = (MultiplexUser*)event.peer->data;
 					friendlyEvent.fromUserId = user->userId;
-					
+					std::vector<uint8_t> packet_vector(&event.packet->data[0], &event.packet->data[(int)event.packet->dataLength]);
+					json data = json::from_msgpack(packet_vector);
 					if (event.channelID == 0) {
-						std::vector<uint8_t> packet_vector(&event.packet->data[0], &event.packet->data[(int)event.packet->dataLength]);
-						json data = json::from_msgpack(packet_vector);
 						MultiplexActions action = data["action"];
 						cout << data << endl;
 						switch (action) {
@@ -142,60 +183,47 @@ namespace Megatowel {
 							unsigned int editingChannel = data["channel"];
 							unsigned long long instanceId = data["instance"];
 
+							bind_channel(user->userId, editingChannel, instanceId);
+
 							friendlyEvent.eventType = MultiplexEventType::InstanceUserUpdate;
 							friendlyEvent.channelId = editingChannel;
 							friendlyEvent.instanceId = instanceId;
-
-							unsigned long long oldInstance = user->channelInstances[editingChannel - 1];
-
-							ENetPacket* leavePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceUserLeave, user->userId, 0);
-							send(0, oldInstance, leavePacket);
-
-							if (oldInstance != 0) {
-								Instances[oldInstance].users.erase(user->userId);
-							}
-
-							if (instanceId == 0) {
-								user->channelInstances[editingChannel - 1] = 0;
-								if (Instances[oldInstance].users.size() == 0) {
-									Instances.erase(Instances[oldInstance].id);
-								}
-								break;
-							}
-							if (Instances.count(instanceId) == 0) {
-								cout << "new instance" << endl;
-								MultiplexInstance instance{ instanceId, "", std::map<unsigned long long, MultiplexInstanceUser>() };
-
-								Instances.insert(std::pair<unsigned long long, MultiplexInstance>(instanceId, instance));
-							}
-							MultiplexInstanceUser instanceUser;
-							instanceUser.channel = editingChannel;
-							instanceUser.peer = event.peer;
-							Instances[instanceId].users.insert(std::pair<unsigned long long, MultiplexInstanceUser>(user->userId, instanceUser));
-
-							user->channelInstances[editingChannel - 1] = instanceId;
-
-							ENetPacket* joinPacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceUserJoin, user->userId, 0);
-							send(0, instanceId, joinPacket);
-							
 
 							break;
 						}
 					}
 					else {
-						std::vector<uint8_t> packet_vector(&event.packet->data[0], &event.packet->data[event.packet->dataLength - 1]);
 						unsigned long long currentInstanceId = user->channelInstances[event.channelID - 1];
 						friendlyEvent.eventType = MultiplexEventType::UserMessage;
 						friendlyEvent.fromUserId = user->userId;
 						friendlyEvent.channelId = (unsigned int)event.channelID;
-						friendlyEvent.data = (char*)event.packet->data;
-						friendlyEvent.dataSize = (unsigned int)event.packet->dataLength;
+						vector<uint8_t> bin = data["d"];
+						vector<uint8_t> binInfo = data["i"];
+
+						// Copy from vector.
+						// We don't want to use .data() because reference out of scope is bad ;/
+						for (unsigned int i = 0; i < (unsigned int)bin.size(); ++i)
+						{
+							dataBuffer[i] = bin[i];
+
+						}
+						for (unsigned int i = 0; i < (unsigned int)binInfo.size(); ++i)
+						{
+							infoBuffer[i] = binInfo[i];
+						}
+
+						// Very important now that we have a data buffer.
+						friendlyEvent.dataSize = (unsigned int)bin.size();
+						friendlyEvent.infoSize = (unsigned int)bin.size();
+
+						friendlyEvent.data = dataBuffer;
+						friendlyEvent.info = infoBuffer;
 						if (currentInstanceId == 0) {
 							friendlyEvent.Error = MultiplexErrors::FailedRelay;
 							break;
 						}
 
-						ENetPacket* relayPacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::Message, user->userId, event.packet->flags, packet_vector);
+						ENetPacket* relayPacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::Message, user->userId, event.packet->flags, data["d"], data["i"]);
 						
 						send(0, currentInstanceId, relayPacket);
 					}
@@ -210,20 +238,12 @@ namespace Megatowel {
 					friendlyEvent.eventType = MultiplexEventType::Disconnected;
 					friendlyEvent.fromUserId = user->userId;
 					for (int i = 0; i < MAX_MULTIPLEX_CHANNELS; i++) {
-						unsigned long long oldInstance = user->channelInstances[i];
-						if (oldInstance != 0) {
-							Instances[oldInstance].users.erase(user->userId);
-							if (Instances[oldInstance].users.size() == 0) {
-								Instances.erase(Instances[oldInstance].id);
-							}
-							else {
-								ENetPacket* packet = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceUserLeave, user->userId, 1);
-								send(0, oldInstance, packet);
-							}
-						}
+						bind_channel(user->userId, i + 1, 0);
 					}
 					// Remove user's data from memory.
+					Users.erase(user->userId);
 					delete user;
+
 					// Reset the peer's client information.
 					event.peer->data = NULL;
 				}
