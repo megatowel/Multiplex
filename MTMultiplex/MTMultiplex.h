@@ -30,6 +30,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <algorithm>
 
 #define MAX_MULTIPLEX_CHANNELS 32 /* The amount of instance channels. */
 #define MAX_MULTIPLEX_SERVER_CONNECTIONS 1024
@@ -94,13 +95,15 @@ namespace Megatowel {
 			unsigned int dataSize = 0;
 			char* info = nullptr;
 			unsigned int infoSize = 0;
+			unsigned long long* userIds = nullptr;
+			unsigned int userIdsSize = 0;
 			MultiplexErrors Error = MultiplexErrors::None;
 			int ENetError = 0;
 		};
 
 		struct MultiplexUser {
 			unsigned long long userId;
-			unsigned long long channelInstances[32];
+			unsigned long long channelInstances[MAX_MULTIPLEX_CHANNELS];
 			void* peer;
 		};
 

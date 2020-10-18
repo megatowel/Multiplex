@@ -11,7 +11,15 @@ void events_thread(MultiplexClient client)
 {
 	while (true) {
 		MultiplexEvent mtmp_event = client.process_event(5000);
-		if (mtmp_event.eventType == MultiplexEventType::UserMessage) {
+		if (mtmp_event.eventType == MultiplexEventType::InstanceConnected) {
+			cout << "Users in current instance: ";
+			for (unsigned int i = 0; i < mtmp_event.userIdsSize; ++i)
+			{
+				cout << mtmp_event.userIds[i] << " ";
+			}
+			cout << endl;
+		}
+		else if (mtmp_event.eventType == MultiplexEventType::UserMessage) {
 			bool isChat = true;
 			
 			if (mtmp_event.infoSize != (unsigned int)4) {
@@ -100,7 +108,14 @@ int main(int argc, char** argv)
 			cout << "Failed to start client." << endl;
 			return 1;
 		}
-
+		client.bind_channel(1, 1);
+		std::thread t1(events_thread, client);
+		std::string message;
+		while (true) {
+			cout << "Type your message: ";
+			getline(cin, message);
+			client.send(message.data(), message.size(), info, (unsigned int)4, 1, true);
+		}
 		cout << "MTMultiplexTest.exe" << endl;
 		cout << "  Examples:" << endl;
 		cout << "    " << "MTMultiplexTest.exe" << " -client 127.0.0.1" << endl;

@@ -16,6 +16,10 @@ namespace Megatowel {
 		MultiplexClient::MultiplexClient() {
 			dataBuffer = new char[2048];
 			infoBuffer = new char[128];
+			userIdsBuffer = new unsigned long long[128];
+			for (auto i = 0; i < MAX_MULTIPLEX_CHANNELS; i++) {
+				instanceByChannel[i] = 0;
+			}
 		}
 
 		MultiplexClient::~MultiplexClient() {
@@ -123,7 +127,6 @@ namespace Megatowel {
 				case ENET_EVENT_TYPE_RECEIVE: {
 					std::vector<uint8_t> packet_vector(&event.packet->data[0], &event.packet->data[event.packet->dataLength]);
 					json data = json::from_msgpack(packet_vector);
-
 					friendlyEvent.fromUserId = (unsigned long long)data["u"];
 					switch ((MultiplexSystemResponses)data["r"])
 						{
@@ -132,25 +135,19 @@ namespace Megatowel {
 							friendlyEvent.channelId = (unsigned int)event.channelID;
 
 							vector<uint8_t> bin = data["d"];
-							vector<uint8_t> binInfo = data["i"];
+							vector<uint8_t> binInfo = data["t"];
 
-							// Copy from vector.
-							// We don't want to use .data() because reference out of scope is bad ;/
-							for (unsigned int i = 0; i < (unsigned int)bin.size(); ++i)
-							{
-								dataBuffer[i] = bin[i];
-							}
-							for (unsigned int i = 0; i < (unsigned int)binInfo.size(); ++i)
-							{
-								infoBuffer[i] = binInfo[i];
-							}
-
-							// Very important now that we have a data buffer.
-							friendlyEvent.dataSize = (unsigned int)bin.size();
-							friendlyEvent.infoSize = (unsigned int)binInfo.size();
+							// Copy from vector to class buffer arrays.
+							memcpy(dataBuffer, bin.data(), bin.size());
+							memcpy(infoBuffer, binInfo.data(), binInfo.size());
 
 							friendlyEvent.data = dataBuffer;
 							friendlyEvent.info = infoBuffer;
+
+							// Very important to state the size of the buffers.
+							friendlyEvent.dataSize = (unsigned int)bin.size();
+							friendlyEvent.infoSize = (unsigned int)binInfo.size();
+
 							break;
 						}
 						case MultiplexSystemResponses::UserSetup: {
@@ -159,19 +156,39 @@ namespace Megatowel {
 						}
 						case MultiplexSystemResponses::InstanceConnected: {
 							friendlyEvent.eventType = MultiplexEventType::InstanceConnected;
-							// Nothing here for the moment
+							vector<unsigned long long> bin = data["a"];
+							if (data.count("i") == 1) {
+								instanceByChannel[event.channelID] = data["i"];
+							}
+							else {
+								instanceByChannel[event.channelID] = 0;
+							}
+
+							// Since we may be switched to an instance, we need to refresh our users vector.
+							// Even when we get switched to instance 0, the instance id for no instance.
+							usersByChannel[event.channelID] = std::vector<unsigned long long>();
+
+							for (unsigned int i = 0; i < bin.size(); ++i)
+							{
+								userIdsBuffer[i] = bin.data()[i];
+								usersByChannel[event.channelID].push_back(bin.data()[i]);
+							}
+							friendlyEvent.userIds = userIdsBuffer;
+							friendlyEvent.userIdsSize = (unsigned int)bin.size();
 							break;
 						}
 						case MultiplexSystemResponses::InstanceUserJoin: {
 							friendlyEvent.eventType = MultiplexEventType::InstanceUserUpdate;
 							friendlyEvent.channelId = (unsigned int)event.channelID;
 							friendlyEvent.instanceId = (unsigned int)event.channelID;
+							usersByChannel[event.channelID].push_back(friendlyEvent.fromUserId);
 							break;
 						}
 						case MultiplexSystemResponses::InstanceUserLeave: {
 							friendlyEvent.eventType = MultiplexEventType::InstanceUserUpdate;
 							friendlyEvent.channelId = (unsigned int)event.channelID;
 							friendlyEvent.instanceId = 0;
+							usersByChannel[event.channelID].erase(std::find(usersByChannel[event.channelID].begin(), usersByChannel[event.channelID].end(), friendlyEvent.fromUserId));
 							break;
 						}
 

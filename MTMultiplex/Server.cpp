@@ -82,7 +82,7 @@ namespace Megatowel {
 			unsigned long long oldInstance = user->channelInstances[editingChannel - 1];
 
 			if (oldInstance != 0) {
-				ENetPacket* leavePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceUserLeave, user->userId, 0);
+				ENetPacket* leavePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceUserLeave, user->userId, 0, 1);
 				send(0, oldInstance, leavePacket);
 				Instances[oldInstance].users.erase(user->userId);
 			}
@@ -92,6 +92,8 @@ namespace Megatowel {
 				if (Instances[oldInstance].users.size() == 0) {
 					Instances.erase(Instances[oldInstance].id);
 				}
+				ENetPacket* leaveInstancePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceConnected, user->userId, 0, 1, nullptr, nullptr, &std::vector<unsigned long long>());
+				send(0, instanceId, leaveInstancePacket);
 				return 1;
 			}
 			if (Instances.count(instanceId) == 0) {
@@ -106,29 +108,35 @@ namespace Megatowel {
 
 			user->channelInstances[editingChannel - 1] = instanceId;
 
-			ENetPacket* joinPacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceUserJoin, user->userId, 0);
+			ENetPacket* joinPacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceUserJoin, user->userId, 0, 1);
 			send(0, instanceId, joinPacket);
+
+			std::vector<unsigned long long> users;
+			for (std::map<unsigned long long, MultiplexInstanceUser>::iterator it = Instances[instanceId].users.begin();
+				it != Instances[instanceId].users.end(); ++it) {
+				users.push_back(it->first);
+			}
+
+			ENetPacket* joinInstancePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceConnected, user->userId, instanceId, 1, nullptr, nullptr, &users);
+			send(0, instanceId, joinInstancePacket);
+
 			return 0;
 		}
 
 		void* MultiplexServer::create_system_packet(MultiplexSystemResponses responseType,
-			unsigned long long userId, int flags, std::vector<uint8_t> data, std::vector<uint8_t> info) {
+			unsigned long long userId, unsigned long long instance, int flags,
+			std::vector<uint8_t>* data, std::vector<uint8_t>* info, std::vector<unsigned long long>* userIds) {
 			json msg;
 			msg["r"] = responseType;
 			msg["u"] = userId;
-			msg["d"] = data;
-			msg["i"] = info;
-			vector<uint8_t> jsonData = json::to_msgpack(msg);
-			return (void*)enet_packet_create(jsonData.data(),
-				jsonData.size(),
-				flags);
-		}
-
-		void* MultiplexServer::create_system_packet(MultiplexSystemResponses responseType,
-			unsigned long long userId, int flags) {
-			json msg;
-			msg["r"] = responseType;
-			msg["u"] = userId;
+			if (data != nullptr)
+			msg["d"] = *data;
+			if (info != nullptr)
+			msg["t"] = *info;
+			if (userIds != nullptr)
+			msg["a"] = *userIds;
+			if (instance != 0)
+			msg["i"] = instance;
 			vector<uint8_t> jsonData = json::to_msgpack(msg);
 			return (void*)enet_packet_create(jsonData.data(),
 				jsonData.size(),
@@ -167,7 +175,7 @@ namespace Megatowel {
 					user->peer = (void*)event.peer;
 					cout << user->userId << endl;
 					Users.insert(std::pair<unsigned long long, MultiplexUser*>(userId, user));
-					ENetPacket* packet = (ENetPacket*)create_system_packet(MultiplexSystemResponses::UserSetup, user->userId, 0);
+					ENetPacket* packet = (ENetPacket*)create_system_packet(MultiplexSystemResponses::UserSetup, user->userId, 0, 1);
 					enet_peer_send(event.peer, 0, packet);
 					break;}
 				case ENET_EVENT_TYPE_RECEIVE: {
@@ -200,30 +208,22 @@ namespace Megatowel {
 						vector<uint8_t> bin = data["d"];
 						vector<uint8_t> binInfo = data["i"];
 
-						// Copy from vector.
-						// We don't want to use .data() because reference out of scope is bad ;/
-						for (unsigned int i = 0; i < (unsigned int)bin.size(); ++i)
-						{
-							dataBuffer[i] = bin[i];
-
-						}
-						for (unsigned int i = 0; i < (unsigned int)binInfo.size(); ++i)
-						{
-							infoBuffer[i] = binInfo[i];
-						}
-
-						// Very important now that we have a data buffer.
-						friendlyEvent.dataSize = (unsigned int)bin.size();
-						friendlyEvent.infoSize = (unsigned int)bin.size();
+						// Copy from vector to class buffer arrays.
+						memcpy(dataBuffer, bin.data(), bin.size());
+						memcpy(infoBuffer, binInfo.data(), binInfo.size());
 
 						friendlyEvent.data = dataBuffer;
 						friendlyEvent.info = infoBuffer;
+
+						// Very important to state the size of the buffers.
+						friendlyEvent.dataSize = (unsigned int)bin.size();
+						friendlyEvent.infoSize = (unsigned int)binInfo.size();
 						if (currentInstanceId == 0) {
 							friendlyEvent.Error = MultiplexErrors::FailedRelay;
 							break;
 						}
 
-						ENetPacket* relayPacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::Message, user->userId, event.packet->flags, data["d"], data["i"]);
+						ENetPacket* relayPacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::Message, user->userId, 0, event.packet->flags, &bin, &binInfo);
 						
 						send(0, currentInstanceId, relayPacket);
 					}

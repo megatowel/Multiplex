@@ -17,10 +17,9 @@ namespace Megatowel {
 			MTMULTIPLEX_EXPORT MultiplexEvent process_event(unsigned int timeout) override;
 
 		protected:
-			void* create_system_packet(Megatowel::Multiplex::MultiplexSystemResponses responseType,
-				unsigned long long userId, int flags, std::vector<uint8_t> data, std::vector<uint8_t> info);
-			void* create_system_packet(Megatowel::Multiplex::MultiplexSystemResponses responseType,
-				unsigned long long userId, int flags);
+			void* create_system_packet(MultiplexSystemResponses responseType,
+				unsigned long long userId, unsigned long long instance, int flags,
+				std::vector<uint8_t>* data = nullptr, std::vector<uint8_t>* info = nullptr, std::vector<unsigned long long>* userIds = nullptr);
 			void* client = NULL;
 			void* peer = NULL;
 			// Our buffers that we can safely use ;>
