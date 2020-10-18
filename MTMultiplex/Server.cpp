@@ -119,7 +119,7 @@ namespace Megatowel {
 			}
 
 			ENetPacket* joinInstancePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceConnected, user->userId, instanceId, 1, nullptr, nullptr, &users);
-			send(0, instanceId, joinInstancePacket);
+			send(user->userId, instanceId, joinInstancePacket);
 
 			return 0;
 		}
