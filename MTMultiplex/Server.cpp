@@ -92,7 +92,8 @@ namespace Megatowel {
 				if (Instances[oldInstance].users.size() == 0) {
 					Instances.erase(Instances[oldInstance].id);
 				}
-				ENetPacket* leaveInstancePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceConnected, user->userId, 0, 1, nullptr, nullptr, &std::vector<unsigned long long>());
+				std::vector<unsigned long long> emptyVector = std::vector<unsigned long long>();
+				ENetPacket* leaveInstancePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceConnected, user->userId, 0, 1, nullptr, nullptr, &emptyVector);
 				send(0, instanceId, leaveInstancePacket);
 				return 1;
 			}
