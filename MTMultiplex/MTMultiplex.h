@@ -35,6 +35,15 @@
 #define MAX_MULTIPLEX_CHANNELS 32 /* The amount of instance channels. */
 #define MAX_MULTIPLEX_SERVER_CONNECTIONS 1024
 
+#define PACK_FIELD_RESPONSE_TYPE 0
+#define PACK_FIELD_FROM_USERID 1
+#define PACK_FIELD_DATA 2
+#define PACK_FIELD_INFO 3
+#define PACK_FIELD_USERIDS 4
+#define PACK_FIELD_INSTANCEID 5
+
+#define PACK_FIELD_COUNT 6
+
 namespace Megatowel {
 	namespace Multiplex {
 

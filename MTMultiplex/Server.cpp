@@ -6,6 +6,7 @@
 #include "MTMultiplex.h"
 #include "Base.h"
 #include "Server.h"
+#include "Packing.h"
 #include <random>
 
 using json = nlohmann::json;
@@ -19,7 +20,7 @@ namespace Megatowel {
 	namespace Multiplex {
 
 		MultiplexServer::MultiplexServer() {
-			dataBuffer = new char[2048];
+			dataBuffer = new char[4096];
 			infoBuffer = new char[128];
 		}
 
@@ -127,20 +128,27 @@ namespace Megatowel {
 		void* MultiplexServer::create_system_packet(MultiplexSystemResponses responseType,
 			unsigned long long userId, unsigned long long instance, int flags,
 			std::vector<uint8_t>* data, std::vector<uint8_t>* info, std::vector<unsigned long long>* userIds) {
-			json msg;
-			msg["r"] = responseType;
-			msg["u"] = userId;
+			std::map<unsigned int, std::pair<char*, size_t>> fields;
+
+			fields.insert(std::pair<unsigned int, std::pair<char*, size_t>>(PACK_FIELD_RESPONSE_TYPE,
+				std::pair<char*, size_t>((char*)&responseType, sizeof(int))));
+			fields.insert(std::pair<unsigned int, std::pair<char*, size_t>>(PACK_FIELD_FROM_USERID,
+				std::pair<char*, size_t>((char*)&userId, sizeof(unsigned long long))));
 			if (data != nullptr)
-			msg["d"] = *data;
+				fields.insert(std::pair<unsigned int, std::pair<char*, size_t>>(PACK_FIELD_DATA,
+					std::pair<char*, size_t>((char*)(*data).data(), (*data).size())));
 			if (info != nullptr)
-			msg["t"] = *info;
+				fields.insert(std::pair<unsigned int, std::pair<char*, size_t>>(PACK_FIELD_INFO,
+					std::pair<char*, size_t>((char*)(*info).data(), (*info).size())));
 			if (userIds != nullptr)
-			msg["a"] = *userIds;
+				fields.insert(std::pair<unsigned int, std::pair<char*, size_t>>(PACK_FIELD_USERIDS,
+					std::pair<char*, size_t>((char*)(*userIds).data(), (*userIds).size() * 8)));
 			if (instance != 0)
-			msg["i"] = instance;
-			vector<uint8_t> jsonData = json::to_msgpack(msg);
-			return (void*)enet_packet_create(jsonData.data(),
-				jsonData.size(),
+				fields.insert(std::pair<unsigned int, std::pair<char*, size_t>>(PACK_FIELD_INSTANCEID,
+					std::pair<char*, size_t>((char*)&instance, sizeof(unsigned long long))));
+			size_t size = Megatowel::MultiplexPacking::pack_fields(fields, dataBuffer);
+			return (void*)enet_packet_create(dataBuffer,
+				size,
 				flags);
 		}
 
@@ -182,9 +190,10 @@ namespace Megatowel {
 				case ENET_EVENT_TYPE_RECEIVE: {
 					user = (MultiplexUser*)event.peer->data;
 					friendlyEvent.fromUserId = user->userId;
-					std::vector<uint8_t> packet_vector(&event.packet->data[0], &event.packet->data[(int)event.packet->dataLength]);
-					json data = json::from_msgpack(packet_vector);
+
 					if (event.channelID == 0) {
+						std::vector<uint8_t> packet_vector(&event.packet->data[0], &event.packet->data[(int)event.packet->dataLength]);
+						json data = json::from_msgpack(packet_vector);
 						MultiplexActions action = data["action"];
 						cout << data << endl;
 						switch (action) {
@@ -202,12 +211,13 @@ namespace Megatowel {
 						}
 					}
 					else {
+						std::map<unsigned int, std::pair<char*, size_t>> data = Megatowel::MultiplexPacking::unpack_fields((char*)event.packet->data, event.packet->dataLength);
 						unsigned long long currentInstanceId = user->channelInstances[event.channelID - 1];
 						friendlyEvent.eventType = MultiplexEventType::UserMessage;
 						friendlyEvent.fromUserId = user->userId;
 						friendlyEvent.channelId = (unsigned int)event.channelID;
-						vector<uint8_t> bin = data["d"];
-						vector<uint8_t> binInfo = data["i"];
+						vector<uint8_t> bin(data[PACK_FIELD_DATA].first, (data[PACK_FIELD_DATA].first + data[PACK_FIELD_DATA].second));
+						vector<uint8_t> binInfo(data[PACK_FIELD_INFO].first, (data[PACK_FIELD_INFO].first + data[PACK_FIELD_INFO].second));
 
 						// Copy from vector to class buffer arrays.
 						memcpy(dataBuffer, bin.data(), bin.size());

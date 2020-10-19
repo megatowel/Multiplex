@@ -6,6 +6,7 @@
 #include "MTMultiplex.h"
 #include "Base.h"
 #include "Client.h"
+#include "Packing.h"
 
 using json = nlohmann::json;
 using namespace std;
@@ -75,15 +76,17 @@ namespace Megatowel {
 		}
 
 		int MultiplexClient::send(const char* data, unsigned int dataLength, const char* info, unsigned int infoLength, unsigned int channel, int flags) {
-			json dataJson;
-			std::vector<uint8_t> data_vector(&data[0], &data[dataLength]);
-			std::vector<uint8_t> info_vector(&info[0], &info[infoLength]);
-			dataJson["d"] = data_vector;
-			dataJson["i"] = info_vector;
-			auto rawData = json::to_msgpack(dataJson);
-			ENetPacket* packet2 = enet_packet_create(rawData.data(),
-				rawData.size(),
+			std::map<unsigned int, std::pair<char*, size_t>> fields;
+
+			fields.insert(std::pair<unsigned int, std::pair<char*, size_t>>(PACK_FIELD_DATA,
+				std::pair<char*, size_t>((char*)data, (size_t)dataLength)));
+			fields.insert(std::pair<unsigned int, std::pair<char*, size_t>>(PACK_FIELD_INFO,
+				std::pair<char*, size_t>((char*)info, (size_t)infoLength)));
+			size_t size = Megatowel::MultiplexPacking::pack_fields(fields, dataBuffer);
+			ENetPacket* packet2 = enet_packet_create(dataBuffer,
+				size,
 				(int)flags && MT_SEND_RELIABLE);
+
 			enet_peer_send((ENetPeer*)peer, channel, packet2);
 			if ((int)flags && MT_NO_FLUSH) {
 				enet_host_flush((ENetHost*)client);
@@ -125,28 +128,23 @@ namespace Megatowel {
 					break;
 				}
 				case ENET_EVENT_TYPE_RECEIVE: {
-					std::vector<uint8_t> packet_vector(&event.packet->data[0], &event.packet->data[event.packet->dataLength]);
-					json data = json::from_msgpack(packet_vector);
-					friendlyEvent.fromUserId = (unsigned long long)data["u"];
-					switch ((MultiplexSystemResponses)data["r"])
+					std::map<unsigned int, std::pair<char*, size_t>> data = Megatowel::MultiplexPacking::unpack_fields((char*)event.packet->data, event.packet->dataLength);
+					friendlyEvent.fromUserId = *((unsigned long long*)(data[PACK_FIELD_FROM_USERID].first));
+					// help me please
+					MultiplexSystemResponses response = (MultiplexSystemResponses)(*((int*)(data[PACK_FIELD_RESPONSE_TYPE].first)));
+					switch (response)
 						{
 						case MultiplexSystemResponses::Message: {
 							friendlyEvent.eventType = MultiplexEventType::UserMessage;
 							friendlyEvent.channelId = (unsigned int)event.channelID;
 
-							vector<uint8_t> bin = data["d"];
-							vector<uint8_t> binInfo = data["t"];
 
-							// Copy from vector to class buffer arrays.
-							memcpy(dataBuffer, bin.data(), bin.size());
-							memcpy(infoBuffer, binInfo.data(), binInfo.size());
-
-							friendlyEvent.data = dataBuffer;
-							friendlyEvent.info = infoBuffer;
+							friendlyEvent.data = data[PACK_FIELD_DATA].first;
+							friendlyEvent.info = data[PACK_FIELD_INFO].first;
 
 							// Very important to state the size of the buffers.
-							friendlyEvent.dataSize = (unsigned int)bin.size();
-							friendlyEvent.infoSize = (unsigned int)binInfo.size();
+							friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].second;
+							friendlyEvent.infoSize = (unsigned int)data[PACK_FIELD_INFO].second;
 
 							break;
 						}
@@ -156,9 +154,8 @@ namespace Megatowel {
 						}
 						case MultiplexSystemResponses::InstanceConnected: {
 							friendlyEvent.eventType = MultiplexEventType::InstanceConnected;
-							vector<unsigned long long> bin = data["a"];
-							if (data.count("i") == 1) {
-								instanceByChannel[event.channelID] = data["i"];
+							if (data.count(PACK_FIELD_INSTANCEID) == 1) {
+								instanceByChannel[event.channelID] = *((unsigned long long*)(data[PACK_FIELD_INSTANCEID].first));
 							}
 							else {
 								instanceByChannel[event.channelID] = 0;
@@ -168,13 +165,13 @@ namespace Megatowel {
 							// Even when we get switched to instance 0, the instance id for no instance.
 							usersByChannel[event.channelID] = std::vector<unsigned long long>();
 
-							for (unsigned int i = 0; i < bin.size(); ++i)
+							for (unsigned int i = 0; i < data[PACK_FIELD_USERIDS].second / 8; ++i)
 							{
-								userIdsBuffer[i] = bin.data()[i];
-								usersByChannel[event.channelID].push_back(bin.data()[i]);
+								userIdsBuffer[i] = ((unsigned long long*)(data[PACK_FIELD_USERIDS].first))[i];
+								usersByChannel[event.channelID].push_back(((unsigned long long*)(data[PACK_FIELD_USERIDS].first))[i]);
 							}
 							friendlyEvent.userIds = userIdsBuffer;
-							friendlyEvent.userIdsSize = (unsigned int)bin.size();
+							friendlyEvent.userIdsSize = (unsigned int)data[PACK_FIELD_USERIDS].second / 8;
 							break;
 						}
 						case MultiplexSystemResponses::InstanceUserJoin: {
