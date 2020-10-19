@@ -72,7 +72,7 @@ namespace Megatowel {
 		// Used for sending.
 		enum MultiplexSendFlags {
 			MT_SEND_RELIABLE = 1 << 0,
-			MT_NO_FLUSH = 2 << 0
+			MT_NO_FLUSH = 1 << 1
 		};
 
 		struct MultiplexInstanceUser {
