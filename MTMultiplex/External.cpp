@@ -27,7 +27,7 @@ int c_bind_channel(MultiplexBase* multiplex, unsigned int channel, unsigned long
 }
 
 int c_bind_channel_server(MultiplexBase* multiplex, unsigned long long userId, unsigned int channel, unsigned long long instance) {
-	return multiplex->bind_channel(channel, instance);
+	return multiplex->bind_channel(userId, channel, instance);
 }
 
 MultiplexEvent c_process_event(MultiplexBase* multiplex, unsigned int timeout) {
