@@ -22,6 +22,7 @@ namespace Megatowel {
 			// Our buffers that we can safely use ;>
 			char* dataBuffer = NULL;
 			char* infoBuffer = NULL;
+			char* sendBuffer = NULL;
 			unsigned long long* userIdsBuffer = NULL;
 			std::vector<unsigned long long> usersByChannel[MAX_MULTIPLEX_CHANNELS];
 			unsigned long long instanceByChannel[MAX_MULTIPLEX_CHANNELS];

@@ -14,20 +14,11 @@ std::map<unsigned int, std::pair<char*, size_t>> Megatowel::MultiplexPacking::un
 	return readFields;
 }
 
-size_t Megatowel::MultiplexPacking::pack_fields(std::map<unsigned int, std::pair<char*,size_t>> fields, char* destChar) {
-	unsigned int currentField = 0;
-	unsigned int currentPos = 0;
-	uint8_t fieldNum;
-	uint16_t fieldSize;
-	for (std::map<unsigned int, std::pair<char*, size_t>>::iterator it = fields.begin();
-		it != fields.end(); ++it) {
-		fieldNum = (uint8_t)it->first;
-		fieldSize = (uint16_t)it->second.second;
-		memcpy((destChar + currentPos), &(fieldNum), sizeof(uint8_t));
-		memcpy((destChar + currentPos + 1), &(fieldSize), sizeof(uint16_t));
-		memcpy((destChar + currentPos + 3), it->second.first, it->second.second);
-		currentField += 1;
-		currentPos += it->second.second + 3;
-	}
-	return (size_t)currentPos;
+size_t Megatowel::MultiplexPacking::pack_field(uint8_t fieldNum, char* fieldData, size_t fieldSize, size_t currentPos, char* destChar) {
+	uint16_t size16 = (uint16_t)fieldSize;
+	memcpy((destChar + currentPos), &(fieldNum), sizeof(uint8_t));
+	memcpy((destChar + currentPos + 1), &(size16), sizeof(uint16_t));
+	memcpy((destChar + currentPos + 3), fieldData, fieldSize);
+	currentPos += fieldSize + 3;
+	return currentPos;
 }

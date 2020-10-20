@@ -17,14 +17,15 @@ namespace Megatowel {
 			MTMULTIPLEX_EXPORT MultiplexEvent process_event(unsigned int timeout) override;
 
 		protected:
-			void* create_system_packet(MultiplexSystemResponses responseType,
+			void* MultiplexServer::create_system_packet(MultiplexSystemResponses responseType,
 				unsigned long long userId, unsigned long long instance, int flags,
-				std::vector<uint8_t>* data = nullptr, std::vector<uint8_t>* info = nullptr, std::vector<unsigned long long>* userIds = nullptr);
+				char* data = nullptr, size_t dataSize = 0, char* info = nullptr, size_t infoSize = 0, std::vector<unsigned long long>* userIds = nullptr);
 			void* client = NULL;
 			void* peer = NULL;
 			// Our buffers that we can safely use ;>
 			char* dataBuffer = NULL;
 			char* infoBuffer = NULL;
+			char* sendBuffer = NULL;
 			std::map<unsigned long long, MultiplexUser*> Users;
 			std::map<unsigned long long, MultiplexInstance> Instances;
 		};

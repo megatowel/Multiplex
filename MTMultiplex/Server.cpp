@@ -21,6 +21,7 @@ namespace Megatowel {
 
 		MultiplexServer::MultiplexServer() {
 			dataBuffer = new char[4096];
+			sendBuffer = new char[4096];
 			infoBuffer = new char[128];
 		}
 
@@ -94,7 +95,7 @@ namespace Megatowel {
 					Instances.erase(Instances[oldInstance].id);
 				}
 				std::vector<unsigned long long> emptyVector = std::vector<unsigned long long>();
-				ENetPacket* leaveInstancePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceConnected, user->userId, 0, 1, nullptr, nullptr, &emptyVector);
+				ENetPacket* leaveInstancePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceConnected, user->userId, 0, 1, nullptr, 0, nullptr, 0, &emptyVector);
 				send(0, instanceId, leaveInstancePacket);
 				return 1;
 			}
@@ -119,7 +120,7 @@ namespace Megatowel {
 				users.push_back(it->first);
 			}
 
-			ENetPacket* joinInstancePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceConnected, user->userId, instanceId, 1, nullptr, nullptr, &users);
+			ENetPacket* joinInstancePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceConnected, user->userId, instanceId, 1, nullptr, 0, nullptr, 0, &users);
 			send(user->userId, instanceId, joinInstancePacket);
 
 			return 0;
@@ -127,28 +128,21 @@ namespace Megatowel {
 
 		void* MultiplexServer::create_system_packet(MultiplexSystemResponses responseType,
 			unsigned long long userId, unsigned long long instance, int flags,
-			std::vector<uint8_t>* data, std::vector<uint8_t>* info, std::vector<unsigned long long>* userIds) {
-			std::map<unsigned int, std::pair<char*, size_t>> fields;
+			char* data, size_t dataSize, char* info, size_t infoSize, std::vector<unsigned long long>* userIds) {
+			size_t pos = 0;
 
-			fields.insert(std::pair<unsigned int, std::pair<char*, size_t>>(PACK_FIELD_RESPONSE_TYPE,
-				std::pair<char*, size_t>((char*)&responseType, sizeof(int))));
-			fields.insert(std::pair<unsigned int, std::pair<char*, size_t>>(PACK_FIELD_FROM_USERID,
-				std::pair<char*, size_t>((char*)&userId, sizeof(unsigned long long))));
+			pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_RESPONSE_TYPE, (char*)&responseType, sizeof(int), pos, sendBuffer);
+			pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_FROM_USERID, (char*)&userId, sizeof(unsigned long long), pos, sendBuffer);
 			if (data != nullptr)
-				fields.insert(std::pair<unsigned int, std::pair<char*, size_t>>(PACK_FIELD_DATA,
-					std::pair<char*, size_t>((char*)(*data).data(), (*data).size())));
+				pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_DATA, data, dataSize, pos, sendBuffer);
 			if (info != nullptr)
-				fields.insert(std::pair<unsigned int, std::pair<char*, size_t>>(PACK_FIELD_INFO,
-					std::pair<char*, size_t>((char*)(*info).data(), (*info).size())));
+				pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_INFO, info, infoSize, pos, sendBuffer);
 			if (userIds != nullptr)
-				fields.insert(std::pair<unsigned int, std::pair<char*, size_t>>(PACK_FIELD_USERIDS,
-					std::pair<char*, size_t>((char*)(*userIds).data(), (*userIds).size() * 8)));
+				pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_USERIDS, (char*)(*userIds).data(), (*userIds).size() * 8, pos, sendBuffer);
 			if (instance != 0)
-				fields.insert(std::pair<unsigned int, std::pair<char*, size_t>>(PACK_FIELD_INSTANCEID,
-					std::pair<char*, size_t>((char*)&instance, sizeof(unsigned long long))));
-			size_t size = Megatowel::MultiplexPacking::pack_fields(fields, dataBuffer);
-			return (void*)enet_packet_create(dataBuffer,
-				size,
+				pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_INSTANCEID, (char*)&instance, sizeof(unsigned long long), pos, sendBuffer);
+			return (void*)enet_packet_create(sendBuffer,
+				pos,
 				flags);
 		}
 
@@ -216,25 +210,24 @@ namespace Megatowel {
 						friendlyEvent.eventType = MultiplexEventType::UserMessage;
 						friendlyEvent.fromUserId = user->userId;
 						friendlyEvent.channelId = (unsigned int)event.channelID;
-						vector<uint8_t> bin(data[PACK_FIELD_DATA].first, (data[PACK_FIELD_DATA].first + data[PACK_FIELD_DATA].second));
-						vector<uint8_t> binInfo(data[PACK_FIELD_INFO].first, (data[PACK_FIELD_INFO].first + data[PACK_FIELD_INFO].second));
 
-						// Copy from vector to class buffer arrays.
-						memcpy(dataBuffer, bin.data(), bin.size());
-						memcpy(infoBuffer, binInfo.data(), binInfo.size());
+						// Copy from packet to class buffer arrays.
+						memcpy(dataBuffer, data[PACK_FIELD_DATA].first, data[PACK_FIELD_DATA].second);
+						memcpy(infoBuffer, data[PACK_FIELD_INFO].first, data[PACK_FIELD_INFO].second);
 
 						friendlyEvent.data = dataBuffer;
 						friendlyEvent.info = infoBuffer;
 
 						// Very important to state the size of the buffers.
-						friendlyEvent.dataSize = (unsigned int)bin.size();
-						friendlyEvent.infoSize = (unsigned int)binInfo.size();
+						friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].second;
+						friendlyEvent.infoSize = (unsigned int)data[PACK_FIELD_INFO].second;
 						if (currentInstanceId == 0) {
 							friendlyEvent.Error = MultiplexErrors::FailedRelay;
 							break;
 						}
 
-						ENetPacket* relayPacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::Message, user->userId, 0, event.packet->flags, &bin, &binInfo);
+						ENetPacket* relayPacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::Message, user->userId, 0, event.packet->flags,
+							data[PACK_FIELD_DATA].first, data[PACK_FIELD_DATA].second, data[PACK_FIELD_INFO].first, data[PACK_FIELD_INFO].second);
 						
 						send(0, currentInstanceId, relayPacket);
 					}

@@ -15,7 +15,8 @@ namespace Megatowel {
 	namespace Multiplex {
 
 		MultiplexClient::MultiplexClient() {
-			dataBuffer = new char[2048];
+			dataBuffer = new char[4096];
+			sendBuffer = new char[4096];
 			infoBuffer = new char[128];
 			userIdsBuffer = new unsigned long long[128];
 			for (auto i = 0; i < MAX_MULTIPLEX_CHANNELS; i++) {
@@ -76,15 +77,14 @@ namespace Megatowel {
 		}
 
 		int MultiplexClient::send(const char* data, unsigned int dataLength, const char* info, unsigned int infoLength, unsigned int channel, int flags) {
-			std::map<unsigned int, std::pair<char*, size_t>> fields;
+			size_t pos = 0;
 
-			fields.insert(std::pair<unsigned int, std::pair<char*, size_t>>(PACK_FIELD_DATA,
-				std::pair<char*, size_t>((char*)data, (size_t)dataLength)));
-			fields.insert(std::pair<unsigned int, std::pair<char*, size_t>>(PACK_FIELD_INFO,
-				std::pair<char*, size_t>((char*)info, (size_t)infoLength)));
-			size_t size = Megatowel::MultiplexPacking::pack_fields(fields, dataBuffer);
-			ENetPacket* packet2 = enet_packet_create(dataBuffer,
-				size,
+			if (data != nullptr)
+				pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_DATA, (char*)data, dataLength, pos, sendBuffer);
+			if (info != nullptr)
+				pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_INFO, (char*)info, infoLength, pos, sendBuffer);
+			ENetPacket* packet2 = enet_packet_create(sendBuffer,
+				pos,
 				(int)flags && MT_SEND_RELIABLE);
 
 			enet_peer_send((ENetPeer*)peer, channel, packet2);
