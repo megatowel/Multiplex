@@ -31,6 +31,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <cstring>
 
 #define MAX_MULTIPLEX_CHANNELS 32 /* The amount of instance channels. */
 #define MAX_MULTIPLEX_SERVER_CONNECTIONS 1024
