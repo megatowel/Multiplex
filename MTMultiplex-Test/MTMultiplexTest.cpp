@@ -102,20 +102,6 @@ int main(int argc, char** argv)
 			}
 		}
 		// Starting client without arguments
-		cout << "Starting Multiplex client (no args)" << endl;
-		MultiplexClient client;
-		if (client.setup("localhost", 3000)) {
-			cout << "Failed to start client." << endl;
-			return 1;
-		}
-		client.bind_channel(1, 1);
-		std::thread t1(events_thread, client);
-		std::string message;
-		while (true) {
-			cout << "Type your message: ";
-			getline(cin, message);
-			client.send(message.data(), message.size(), info, (unsigned int)4, 1, true);
-		}
 		cout << "MTMultiplexTest.exe" << endl;
 		cout << "  Examples:" << endl;
 		cout << "    " << "MTMultiplexTest.exe" << " -client 127.0.0.1" << endl;

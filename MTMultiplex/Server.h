@@ -10,6 +10,7 @@ namespace Megatowel {
 			MTMULTIPLEX_EXPORT MultiplexServer();
 			MTMULTIPLEX_EXPORT ~MultiplexServer();
 			MTMULTIPLEX_EXPORT int setup(char* host_name, int port) override;
+			MTMULTIPLEX_EXPORT int disconnect(unsigned int timeout) override;
 			MTMULTIPLEX_EXPORT int send(const char* data, unsigned int dataLength, const char* info, unsigned int infoLength, unsigned int channel, int flags) override;
 			MTMULTIPLEX_EXPORT int send(unsigned long long userId, unsigned long long instance, const void* packet) override;
 			MTMULTIPLEX_EXPORT int bind_channel(unsigned int channel, unsigned long long instance) override;

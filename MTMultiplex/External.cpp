@@ -14,6 +14,10 @@ int c_destroy(MultiplexBase* multiplex) {
 	return 0;
 }
 
+int c_disconnect(MultiplexBase* multiplex, unsigned int timeout) {
+	return multiplex->disconnect(timeout);
+}
+
 int c_setup(MultiplexBase* multiplex, char* hostname, int port) {
 	return multiplex->setup(hostname, port);
 }

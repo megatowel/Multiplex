@@ -32,12 +32,31 @@ namespace Megatowel {
 			}
 		}
 
+		int MultiplexClient::disconnect(unsigned int timeout) {
+			ENetEvent event;
+			enet_peer_disconnect((ENetPeer*)peer,0);
+			// Wait up to 5 seconds for the connection attempt to succeed.
+			if (enet_host_service((ENetHost*)client, &event, timeout) > 0 &&
+				event.type == ENET_EVENT_TYPE_DISCONNECT)
+			{
+				return 0;
+			}
+			else
+			{
+				// Either the 5 seconds are up or server didn't respond
+				// Reset the peer in the event the 5 seconds   
+				// had run out without any significant event.            
+				enet_peer_reset((ENetPeer*)peer);
+				return -1;
+			}
+		}
+
 		int MultiplexClient::setup(char* host_name, int port) {
 			// Set up a client.
 			cout << "Multiplex Client is being created" << endl;
 			client = enet_host_create(NULL, //create a client host
 				1, // connections limit
-				MAX_MULTIPLEX_CHANNELS + 1, // Refer to the definition of MAX_MULTIPLEX_CONNECTIONS.
+				MAX_MULTIPLEX_CHANNELS + 1, // Refer to the definition of MAX_MULTIPLEX_CHANNELS.
 				0, // assume any amount of incoming bandwidth
 				0); // assume any amount of outgoing bandwidth
 			if (client == NULL)

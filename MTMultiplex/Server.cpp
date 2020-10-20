@@ -33,6 +33,10 @@ namespace Megatowel {
 			}
 		}
 
+		int MultiplexServer::disconnect(unsigned int timeout) {
+			return -2;
+		}
+
 		int MultiplexServer::setup(char* host_name, int port) {
 			ENetAddress address;
 			cout << "Multiplex Server is being created" << endl;
