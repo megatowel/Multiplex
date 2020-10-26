@@ -191,6 +191,8 @@ namespace Megatowel {
 							}
 							friendlyEvent.userIds = userIdsBuffer;
 							friendlyEvent.userIdsSize = (unsigned int)data[PACK_FIELD_USERIDS].second / 8;
+							friendlyEvent.channelId = (unsigned int)event.channelID;
+							friendlyEvent.instanceId = *((unsigned long long*)(data[PACK_FIELD_INSTANCEID].first));
 							break;
 						}
 						case MultiplexSystemResponses::InstanceUserJoin: {
