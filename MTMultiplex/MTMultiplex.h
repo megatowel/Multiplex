@@ -42,15 +42,16 @@
 #define PACK_FIELD_INFO 3
 #define PACK_FIELD_USERIDS 4
 #define PACK_FIELD_INSTANCEID 5
+#define PACK_FIELD_ACTION 6
+#define PACK_FIELD_CHANNELID 7
 
-#define PACK_FIELD_COUNT 6
 
 namespace Megatowel {
 	namespace Multiplex {
 
 		enum class MultiplexActions {
 			EditChannel = 0,
-			Server
+			ServerCustom
 		};
 
 		enum class MultiplexSystemResponses {

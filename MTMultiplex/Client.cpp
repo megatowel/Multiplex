@@ -2,13 +2,11 @@
 //
 
 #include <enet/enet.h>
-#include <nlohmann/json.hpp>
 #include "MTMultiplex.h"
 #include "Base.h"
 #include "Client.h"
 #include "Packing.h"
 
-using json = nlohmann::json;
 using namespace std;
 
 namespace Megatowel {
@@ -102,11 +100,11 @@ namespace Megatowel {
 				pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_DATA, (char*)data, dataLength, pos, sendBuffer);
 			if (info != nullptr)
 				pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_INFO, (char*)info, infoLength, pos, sendBuffer);
-			ENetPacket* packet2 = enet_packet_create(sendBuffer,
+			ENetPacket* packet = enet_packet_create(sendBuffer,
 				pos,
 				(int)flags && MT_SEND_RELIABLE);
 
-			enet_peer_send((ENetPeer*)peer, channel, packet2);
+			enet_peer_send((ENetPeer*)peer, channel, packet);
 			if ((int)flags && MT_NO_FLUSH) {
 				enet_host_flush((ENetHost*)client);
 			}
@@ -118,13 +116,13 @@ namespace Megatowel {
 		}
 		
 		int MultiplexClient::bind_channel(unsigned int channel, unsigned long long instance) {
-			json data;
-			data["action"] = MultiplexActions::EditChannel;
-			data["channel"] = channel;
-			data["instance"] = instance;
-			auto rawData = json::to_msgpack(data);
-			ENetPacket* packet = enet_packet_create(rawData.data(),
-				rawData.size(),
+			size_t pos = 0;
+			MultiplexActions action = MultiplexActions::EditChannel;
+			pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_ACTION, (char*)(&action), sizeof(int), pos, sendBuffer);
+			pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_CHANNELID, (char*)(&channel), sizeof(unsigned int), pos, sendBuffer);
+			pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_INSTANCEID, (char*)(&instance), sizeof(unsigned long long), pos, sendBuffer);
+			ENetPacket* packet = enet_packet_create(sendBuffer,
+				pos,
 				ENET_PACKET_FLAG_RELIABLE);
 			enet_peer_send((ENetPeer*)peer, 0, packet);
 			enet_host_flush((ENetHost*)client);

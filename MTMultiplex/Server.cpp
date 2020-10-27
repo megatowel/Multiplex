@@ -2,14 +2,12 @@
 //
 
 #include <enet/enet.h>
-#include <nlohmann/json.hpp>
 #include "MTMultiplex.h"
 #include "Base.h"
 #include "Server.h"
 #include "Packing.h"
 #include <random>
 
-using json = nlohmann::json;
 using namespace std;
 
 std::random_device rd;     //Get a random seed from the OS entropy device, or whatever
@@ -188,16 +186,14 @@ namespace Megatowel {
 				case ENET_EVENT_TYPE_RECEIVE: {
 					user = (MultiplexUser*)event.peer->data;
 					friendlyEvent.fromUserId = user->userId;
+					std::map<unsigned int, std::pair<char*, size_t>> data = Megatowel::MultiplexPacking::unpack_fields((char*)event.packet->data, event.packet->dataLength);
 
 					if (event.channelID == 0) {
-						std::vector<uint8_t> packet_vector(&event.packet->data[0], &event.packet->data[(int)event.packet->dataLength]);
-						json data = json::from_msgpack(packet_vector);
-						MultiplexActions action = data["action"];
-						cout << data << endl;
+						MultiplexActions action = (MultiplexActions)(*((int*)(data[PACK_FIELD_ACTION].first)));
 						switch (action) {
-						case MultiplexActions::EditChannel:
-							unsigned int editingChannel = data["channel"];
-							unsigned long long instanceId = data["instance"];
+						case MultiplexActions::EditChannel: {
+							unsigned int editingChannel = *((unsigned int*)(data[PACK_FIELD_CHANNELID].first));
+							unsigned long long instanceId = *((unsigned long long *)(data[PACK_FIELD_INSTANCEID].first));
 
 							bind_channel(user->userId, editingChannel, instanceId);
 
@@ -207,10 +203,30 @@ namespace Megatowel {
 
 							break;
 						}
+						case MultiplexActions::ServerCustom: {
+							friendlyEvent.eventType = MultiplexEventType::ServerCustom;
+							if (data.count(PACK_FIELD_DATA)) {
+								friendlyEvent.data = data[PACK_FIELD_DATA].first;
+								friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].second;
+							}
+							if (data.count(PACK_FIELD_CHANNELID))
+								friendlyEvent.channelId = *((unsigned int*)(data[PACK_FIELD_CHANNELID].first));
+							if (data.count(PACK_FIELD_INSTANCEID))
+								friendlyEvent.instanceId = *((unsigned long long*)(data[PACK_FIELD_INSTANCEID].first));
+							break;
+						}
+						}
 					}
 					else {
-						std::map<unsigned int, std::pair<char*, size_t>> data = Megatowel::MultiplexPacking::unpack_fields((char*)event.packet->data, event.packet->dataLength);
 						unsigned long long currentInstanceId = user->channelInstances[event.channelID - 1];
+
+						if (currentInstanceId == 0 || data.count(PACK_FIELD_DATA) == 0 || data.count(PACK_FIELD_INFO) == 0) {
+							friendlyEvent.Error = MultiplexErrors::FailedRelay;
+							// Clean up the packet now that we're done using it.
+							enet_packet_destroy(event.packet);
+							break;
+						}
+
 						friendlyEvent.eventType = MultiplexEventType::UserMessage;
 						friendlyEvent.fromUserId = user->userId;
 						friendlyEvent.channelId = (unsigned int)event.channelID;
@@ -225,10 +241,6 @@ namespace Megatowel {
 						// Very important to state the size of the buffers.
 						friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].second;
 						friendlyEvent.infoSize = (unsigned int)data[PACK_FIELD_INFO].second;
-						if (currentInstanceId == 0) {
-							friendlyEvent.Error = MultiplexErrors::FailedRelay;
-							break;
-						}
 
 						ENetPacket* relayPacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::Message, user->userId, 0, event.packet->flags,
 							data[PACK_FIELD_DATA].first, data[PACK_FIELD_DATA].second, data[PACK_FIELD_INFO].first, data[PACK_FIELD_INFO].second);
