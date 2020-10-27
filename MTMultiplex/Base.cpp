@@ -1,9 +1,7 @@
 #include "Base.h"
 #include "MTMultiplex.h"
 #include <enet/enet.h>
-#include <nlohmann/json.hpp>
 
-using json = nlohmann::json;
 using namespace std;
 
 namespace Megatowel {
