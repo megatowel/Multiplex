@@ -106,6 +106,15 @@ int main(int argc, char** argv)
 		cout << "  Examples:" << endl;
 		cout << "    " << "MTMultiplexTest.exe" << " -client 127.0.0.1" << endl;
 		cout << "    " << "MTMultiplexTest.exe" << " -server (0.0.0.0)" << endl;
+		cout << "Starting Multiplex server (Bound to 0.0.0.0)" << endl;
+
+		MultiplexServer server;
+		if (server.setup("0.0.0.0", 3000)) {
+			cout << "Failed to start server." << endl;
+		}
+		while (true) {
+			server.process_event(5000);
+		}
 		return 0;
 	}
 }

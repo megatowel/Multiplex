@@ -51,7 +51,7 @@ namespace Megatowel {
 
 		enum class MultiplexActions {
 			EditChannel = 0,
-			ServerCustom
+			ServerMessage
 		};
 
 		enum class MultiplexSystemResponses {
@@ -77,7 +77,9 @@ namespace Megatowel {
 			None = 0,
 			ENet,
 			NoEvent,
-			FailedRelay
+			FailedRelay,
+			MissingActionArgs,
+			BadPacking
 		};
 
 		// Used for sending.

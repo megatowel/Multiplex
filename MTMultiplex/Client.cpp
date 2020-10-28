@@ -96,6 +96,10 @@ namespace Megatowel {
 		int MultiplexClient::send(const char* data, unsigned int dataLength, const char* info, unsigned int infoLength, unsigned int channel, int flags) {
 			size_t pos = 0;
 
+			if (channel == 0) {
+				MultiplexActions action = MultiplexActions::ServerMessage;
+				pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_ACTION, (char*)(&action), sizeof(int), pos, sendBuffer);
+			}
 			if (data != nullptr)
 				pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_DATA, (char*)data, dataLength, pos, sendBuffer);
 			if (info != nullptr)

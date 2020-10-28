@@ -186,12 +186,29 @@ namespace Megatowel {
 				case ENET_EVENT_TYPE_RECEIVE: {
 					user = (MultiplexUser*)event.peer->data;
 					friendlyEvent.fromUserId = user->userId;
+
+					// We can't unpack anything less than 3 bytes.
+					if (event.packet->dataLength < 3) {
+						friendlyEvent.eventType = MultiplexEventType::Error;
+						friendlyEvent.Error = MultiplexErrors::BadPacking;
+					}
+
 					std::map<unsigned int, std::pair<char*, size_t>> data = Megatowel::MultiplexPacking::unpack_fields((char*)event.packet->data, event.packet->dataLength);
 
 					if (event.channelID == 0) {
+						if (data.count(PACK_FIELD_ACTION) == 0) {
+							friendlyEvent.eventType = MultiplexEventType::Error;
+							friendlyEvent.Error = MultiplexErrors::MissingActionArgs;
+							break;
+						}
 						MultiplexActions action = (MultiplexActions)(*((int*)(data[PACK_FIELD_ACTION].first)));
 						switch (action) {
 						case MultiplexActions::EditChannel: {
+							if (data.count(PACK_FIELD_CHANNELID) == 0 || data.count(PACK_FIELD_CHANNELID) == 0 || data.count(PACK_FIELD_INSTANCEID) == 0) {
+								friendlyEvent.eventType = MultiplexEventType::Error;
+								friendlyEvent.Error = MultiplexErrors::MissingActionArgs;
+								break;
+							}
 							unsigned int editingChannel = *((unsigned int*)(data[PACK_FIELD_CHANNELID].first));
 							unsigned long long instanceId = *((unsigned long long *)(data[PACK_FIELD_INSTANCEID].first));
 
@@ -203,7 +220,7 @@ namespace Megatowel {
 
 							break;
 						}
-						case MultiplexActions::ServerCustom: {
+						case MultiplexActions::ServerMessage: {
 							friendlyEvent.eventType = MultiplexEventType::ServerCustom;
 							if (data.count(PACK_FIELD_DATA)) {
 								friendlyEvent.data = data[PACK_FIELD_DATA].first;
