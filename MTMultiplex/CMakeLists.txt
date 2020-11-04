@@ -2,7 +2,7 @@
 # project specific logic here.
 #
 cmake_minimum_required (VERSION 3.10)
-add_subdirectory ("enet")
+add_subdirectory ("./ENet")
 # Add source to this project's executable.
 add_library(MTMultiplex SHARED "Base.cpp" "Client.cpp" "Server.cpp" "External.cpp" "External.h" "Packing.cpp" "Packing.h")
 set_property(TARGET MTMultiplex PROPERTY CXX_STANDARD 14)
