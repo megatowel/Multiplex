@@ -9,6 +9,7 @@
 #include <random>
 
 using namespace std;
+using namespace Megatowel::MultiplexPacking;
 
 std::random_device rd;     //Get a random seed from the OS entropy device, or whatever
 std::mt19937_64 eng(rd()); //Use the 64-bit Mersenne Twister 19937 generator and seed it with entropy.
@@ -18,8 +19,8 @@ namespace Megatowel {
 	namespace Multiplex {
 
 		MultiplexServer::MultiplexServer() {
-			dataBuffer = new char[4096];
-			sendBuffer = new char[4096];
+			dataBuffer = new char[65535];
+			sendBuffer = new char[65535];
 			infoBuffer = new char[128];
 		}
 
@@ -193,24 +194,24 @@ namespace Megatowel {
 						friendlyEvent.Error = MultiplexErrors::BadPacking;
 					}
 
-					std::map<unsigned int, std::pair<char*, size_t>> data = Megatowel::MultiplexPacking::unpack_fields((char*)event.packet->data, event.packet->dataLength);
+					PackingField* data = unpack_fields((char*)event.packet->data, event.packet->dataLength);
 
 					if (event.channelID == 0) {
-						if (data.count(PACK_FIELD_ACTION) == 0) {
+						if (data[PACK_FIELD_ACTION].size == 0) {
 							friendlyEvent.eventType = MultiplexEventType::Error;
 							friendlyEvent.Error = MultiplexErrors::MissingActionArgs;
 							break;
 						}
-						MultiplexActions action = (MultiplexActions)(*((int*)(data[PACK_FIELD_ACTION].first)));
+						MultiplexActions action = (MultiplexActions)(*((int*)(data[PACK_FIELD_ACTION].data)));
 						switch (action) {
 						case MultiplexActions::EditChannel: {
-							if (data.count(PACK_FIELD_CHANNELID) == 0 || data.count(PACK_FIELD_CHANNELID) == 0 || data.count(PACK_FIELD_INSTANCEID) == 0) {
+							if (data[PACK_FIELD_CHANNELID].size == 0 || data[PACK_FIELD_INSTANCEID].size == 0) {
 								friendlyEvent.eventType = MultiplexEventType::Error;
 								friendlyEvent.Error = MultiplexErrors::MissingActionArgs;
 								break;
 							}
-							unsigned int editingChannel = *((unsigned int*)(data[PACK_FIELD_CHANNELID].first));
-							unsigned long long instanceId = *((unsigned long long *)(data[PACK_FIELD_INSTANCEID].first));
+							unsigned int editingChannel = *((unsigned int*)(data[PACK_FIELD_CHANNELID].data));
+							unsigned long long instanceId = *((unsigned long long *)(data[PACK_FIELD_INSTANCEID].data));
 
 							bind_channel(user->userId, editingChannel, instanceId);
 
@@ -222,14 +223,14 @@ namespace Megatowel {
 						}
 						case MultiplexActions::ServerMessage: {
 							friendlyEvent.eventType = MultiplexEventType::ServerCustom;
-							if (data.count(PACK_FIELD_DATA)) {
-								friendlyEvent.data = data[PACK_FIELD_DATA].first;
-								friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].second;
+							if (data[PACK_FIELD_DATA].size) {
+								friendlyEvent.data = data[PACK_FIELD_DATA].data;
+								friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].size;
 							}
-							if (data.count(PACK_FIELD_CHANNELID))
-								friendlyEvent.channelId = *((unsigned int*)(data[PACK_FIELD_CHANNELID].first));
-							if (data.count(PACK_FIELD_INSTANCEID))
-								friendlyEvent.instanceId = *((unsigned long long*)(data[PACK_FIELD_INSTANCEID].first));
+							if (data[PACK_FIELD_CHANNELID].size)
+								friendlyEvent.channelId = *((unsigned int*)(data[PACK_FIELD_CHANNELID].data));
+							if (data[PACK_FIELD_INSTANCEID].size)
+								friendlyEvent.instanceId = *((unsigned long long*)(data[PACK_FIELD_INSTANCEID].data));
 							break;
 						}
 						}
@@ -237,7 +238,7 @@ namespace Megatowel {
 					else {
 						unsigned long long currentInstanceId = user->channelInstances[event.channelID - 1];
 
-						if (currentInstanceId == 0 || data.count(PACK_FIELD_DATA) == 0 || data.count(PACK_FIELD_INFO) == 0) {
+						if (currentInstanceId == 0 || data[PACK_FIELD_DATA].size == 0 || data[PACK_FIELD_INFO].size == 0) {
 							friendlyEvent.Error = MultiplexErrors::FailedRelay;
 							// Clean up the packet now that we're done using it.
 							enet_packet_destroy(event.packet);
@@ -249,18 +250,18 @@ namespace Megatowel {
 						friendlyEvent.channelId = (unsigned int)event.channelID;
 
 						// Copy from packet to class buffer arrays.
-						memcpy(dataBuffer, data[PACK_FIELD_DATA].first, data[PACK_FIELD_DATA].second);
-						memcpy(infoBuffer, data[PACK_FIELD_INFO].first, data[PACK_FIELD_INFO].second);
+						memcpy(dataBuffer, data[PACK_FIELD_DATA].data, data[PACK_FIELD_DATA].size);
+						memcpy(infoBuffer, data[PACK_FIELD_INFO].data, data[PACK_FIELD_INFO].size);
 
 						friendlyEvent.data = dataBuffer;
 						friendlyEvent.info = infoBuffer;
 
 						// Very important to state the size of the buffers.
-						friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].second;
-						friendlyEvent.infoSize = (unsigned int)data[PACK_FIELD_INFO].second;
+						friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].size;
+						friendlyEvent.infoSize = (unsigned int)data[PACK_FIELD_INFO].size;
 
 						ENetPacket* relayPacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::Message, user->userId, 0, event.packet->flags,
-							data[PACK_FIELD_DATA].first, data[PACK_FIELD_DATA].second, data[PACK_FIELD_INFO].first, data[PACK_FIELD_INFO].second);
+							data[PACK_FIELD_DATA].data, data[PACK_FIELD_DATA].size, data[PACK_FIELD_INFO].data, data[PACK_FIELD_INFO].size);
 						
 						send(0, currentInstanceId, relayPacket);
 					}

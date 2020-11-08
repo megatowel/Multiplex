@@ -8,13 +8,14 @@
 #include "Packing.h"
 
 using namespace std;
+using namespace Megatowel::MultiplexPacking;
 
 namespace Megatowel {
 	namespace Multiplex {
 
 		MultiplexClient::MultiplexClient() {
-			dataBuffer = new char[4096];
-			sendBuffer = new char[4096];
+			dataBuffer = new char[65535];
+			sendBuffer = new char[65535];
 			infoBuffer = new char[128];
 			userIdsBuffer = new unsigned long long[128];
 			for (auto i = 0; i < MAX_MULTIPLEX_CHANNELS; i++) {
@@ -149,10 +150,11 @@ namespace Megatowel {
 					break;
 				}
 				case ENET_EVENT_TYPE_RECEIVE: {
-					std::map<unsigned int, std::pair<char*, size_t>> data = Megatowel::MultiplexPacking::unpack_fields((char*)event.packet->data, event.packet->dataLength);
-					friendlyEvent.fromUserId = *((unsigned long long*)(data[PACK_FIELD_FROM_USERID].first));
+					PackingField* data = unpack_fields((char*)event.packet->data, event.packet->dataLength);
+
+					friendlyEvent.fromUserId = *((unsigned long long*)(data[PACK_FIELD_FROM_USERID].data));
 					// help me please
-					MultiplexSystemResponses response = (MultiplexSystemResponses)(*((int*)(data[PACK_FIELD_RESPONSE_TYPE].first)));
+					MultiplexSystemResponses response = (MultiplexSystemResponses)(*((int*)(data[PACK_FIELD_RESPONSE_TYPE].data)));
 					switch (response)
 						{
 						case MultiplexSystemResponses::Message: {
@@ -160,12 +162,12 @@ namespace Megatowel {
 							friendlyEvent.channelId = (unsigned int)event.channelID;
 
 
-							friendlyEvent.data = data[PACK_FIELD_DATA].first;
-							friendlyEvent.info = data[PACK_FIELD_INFO].first;
+							friendlyEvent.data = data[PACK_FIELD_DATA].data;
+							friendlyEvent.info = data[PACK_FIELD_INFO].data;
 
 							// Very important to state the size of the buffers.
-							friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].second;
-							friendlyEvent.infoSize = (unsigned int)data[PACK_FIELD_INFO].second;
+							friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].size;
+							friendlyEvent.infoSize = (unsigned int)data[PACK_FIELD_INFO].size;
 
 							break;
 						}
@@ -175,26 +177,29 @@ namespace Megatowel {
 						}
 						case MultiplexSystemResponses::InstanceConnected: {
 							friendlyEvent.eventType = MultiplexEventType::InstanceConnected;
-							if (data.count(PACK_FIELD_INSTANCEID) == 1) {
-								instanceByChannel[event.channelID] = *((unsigned long long*)(data[PACK_FIELD_INSTANCEID].first));
+							instanceByChannel[event.channelID] = *((unsigned long long*)(data[PACK_FIELD_INSTANCEID].data));
+							
+							if (data[PACK_FIELD_INSTANCEID].size > 0) {
+								instanceByChannel[event.channelID] = *((unsigned long long*)(data[PACK_FIELD_INSTANCEID].data));
 							}
 							else {
 								instanceByChannel[event.channelID] = 0;
 							}
+							
 
 							// Since we may be switched to an instance, we need to refresh our users vector.
 							// Even when we get switched to instance 0, the instance id for no instance.
 							usersByChannel[event.channelID] = std::vector<unsigned long long>();
 
-							for (unsigned int i = 0; i < data[PACK_FIELD_USERIDS].second / 8; ++i)
+							for (unsigned int i = 0; i < data[PACK_FIELD_USERIDS].size / 8; ++i)
 							{
-								userIdsBuffer[i] = ((unsigned long long*)(data[PACK_FIELD_USERIDS].first))[i];
-								usersByChannel[event.channelID].push_back(((unsigned long long*)(data[PACK_FIELD_USERIDS].first))[i]);
+								userIdsBuffer[i] = ((unsigned long long*)(data[PACK_FIELD_USERIDS].data))[i];
+								usersByChannel[event.channelID].push_back(((unsigned long long*)(data[PACK_FIELD_USERIDS].data))[i]);
 							}
 							friendlyEvent.userIds = userIdsBuffer;
-							friendlyEvent.userIdsSize = (unsigned int)data[PACK_FIELD_USERIDS].second / 8;
+							friendlyEvent.userIdsSize = (unsigned int)data[PACK_FIELD_USERIDS].size / 8;
 							friendlyEvent.channelId = (unsigned int)event.channelID;
-							friendlyEvent.instanceId = *((unsigned long long*)(data[PACK_FIELD_INSTANCEID].first));
+							friendlyEvent.instanceId = *((unsigned long long*)(data[PACK_FIELD_INSTANCEID].data));
 							break;
 						}
 						case MultiplexSystemResponses::InstanceUserJoin: {
