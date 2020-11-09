@@ -2,6 +2,7 @@
 
 #include "MTMultiplex.h"
 #include "Base.h"
+#include "Packing.h"
 
 namespace Megatowel {
 	namespace Multiplex {
@@ -23,6 +24,7 @@ namespace Megatowel {
 				char* data = nullptr, size_t dataSize = 0, char* info = nullptr, size_t infoSize = 0, std::vector<unsigned long long>* userIds = nullptr);
 			void* client = NULL;
 			void* peer = NULL;
+			Megatowel::MultiplexPacking::Packing packer;
 			// Our buffers that we can safely use ;>
 			char* dataBuffer = NULL;
 			char* infoBuffer = NULL;

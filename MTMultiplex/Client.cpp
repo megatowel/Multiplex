@@ -5,7 +5,6 @@
 #include "MTMultiplex.h"
 #include "Base.h"
 #include "Client.h"
-#include "Packing.h"
 
 using namespace std;
 using namespace Megatowel::MultiplexPacking;
@@ -17,6 +16,7 @@ namespace Megatowel {
 			dataBuffer = new char[65535];
 			sendBuffer = new char[65535];
 			infoBuffer = new char[128];
+			packer = Packing();
 			userIdsBuffer = new unsigned long long[128];
 			for (auto i = 0; i < MAX_MULTIPLEX_CHANNELS; i++) {
 				instanceByChannel[i] = 0;
@@ -99,12 +99,12 @@ namespace Megatowel {
 
 			if (channel == 0) {
 				MultiplexActions action = MultiplexActions::ServerMessage;
-				pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_ACTION, (char*)(&action), sizeof(int), pos, sendBuffer);
+				pos = packer.pack_field(PACK_FIELD_ACTION, (char*)(&action), sizeof(int), pos, sendBuffer);
 			}
 			if (data != nullptr)
-				pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_DATA, (char*)data, dataLength, pos, sendBuffer);
+				pos = packer.pack_field(PACK_FIELD_DATA, (char*)data, dataLength, pos, sendBuffer);
 			if (info != nullptr)
-				pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_INFO, (char*)info, infoLength, pos, sendBuffer);
+				pos = packer.pack_field(PACK_FIELD_INFO, (char*)info, infoLength, pos, sendBuffer);
 			ENetPacket* packet = enet_packet_create(sendBuffer,
 				pos,
 				(int)flags && MT_SEND_RELIABLE);
@@ -123,9 +123,9 @@ namespace Megatowel {
 		int MultiplexClient::bind_channel(unsigned int channel, unsigned long long instance) {
 			size_t pos = 0;
 			MultiplexActions action = MultiplexActions::EditChannel;
-			pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_ACTION, (char*)(&action), sizeof(int), pos, sendBuffer);
-			pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_CHANNELID, (char*)(&channel), sizeof(unsigned int), pos, sendBuffer);
-			pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_INSTANCEID, (char*)(&instance), sizeof(unsigned long long), pos, sendBuffer);
+			pos = packer.pack_field(PACK_FIELD_ACTION, (char*)(&action), sizeof(int), pos, sendBuffer);
+			pos = packer.pack_field(PACK_FIELD_CHANNELID, (char*)(&channel), sizeof(unsigned int), pos, sendBuffer);
+			pos = packer.pack_field(PACK_FIELD_INSTANCEID, (char*)(&instance), sizeof(unsigned long long), pos, sendBuffer);
 			ENetPacket* packet = enet_packet_create(sendBuffer,
 				pos,
 				ENET_PACKET_FLAG_RELIABLE);
@@ -150,7 +150,7 @@ namespace Megatowel {
 					break;
 				}
 				case ENET_EVENT_TYPE_RECEIVE: {
-					PackingField* data = unpack_fields((char*)event.packet->data, event.packet->dataLength);
+					PackingField* data = packer.unpack_fields((char*)event.packet->data, event.packet->dataLength);
 
 					friendlyEvent.fromUserId = *((unsigned long long*)(data[PACK_FIELD_FROM_USERID].data));
 					// help me please
@@ -191,7 +191,7 @@ namespace Megatowel {
 							// Even when we get switched to instance 0, the instance id for no instance.
 							usersByChannel[event.channelID] = std::vector<unsigned long long>();
 
-							for (unsigned int i = 0; i < data[PACK_FIELD_USERIDS].size / 8; ++i)
+							for (int i = 0; i < data[PACK_FIELD_USERIDS].size / 8; ++i)
 							{
 								userIdsBuffer[i] = ((unsigned long long*)(data[PACK_FIELD_USERIDS].data))[i];
 								usersByChannel[event.channelID].push_back(((unsigned long long*)(data[PACK_FIELD_USERIDS].data))[i]);

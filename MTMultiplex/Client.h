@@ -2,6 +2,7 @@
 
 #include "MTMultiplex.h"
 #include "Base.h"
+#include "Packing.h"
 
 namespace Megatowel {
 	namespace Multiplex {
@@ -20,6 +21,7 @@ namespace Megatowel {
 		protected:
 			void* client = NULL;
 			void* peer = NULL;
+			Megatowel::MultiplexPacking::Packing packer;
 			// Our buffers that we can safely use ;>
 			char* dataBuffer = NULL;
 			char* infoBuffer = NULL;

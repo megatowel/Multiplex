@@ -5,7 +5,6 @@
 #include "MTMultiplex.h"
 #include "Base.h"
 #include "Server.h"
-#include "Packing.h"
 #include <random>
 
 using namespace std;
@@ -22,6 +21,7 @@ namespace Megatowel {
 			dataBuffer = new char[65535];
 			sendBuffer = new char[65535];
 			infoBuffer = new char[128];
+			packer = Packing();
 		}
 
 		MultiplexServer::~MultiplexServer() {
@@ -134,16 +134,16 @@ namespace Megatowel {
 			char* data, size_t dataSize, char* info, size_t infoSize, std::vector<unsigned long long>* userIds) {
 			size_t pos = 0;
 
-			pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_RESPONSE_TYPE, (char*)&responseType, sizeof(int), pos, sendBuffer);
-			pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_FROM_USERID, (char*)&userId, sizeof(unsigned long long), pos, sendBuffer);
+			pos = packer.pack_field(PACK_FIELD_RESPONSE_TYPE, (char*)&responseType, sizeof(int), pos, sendBuffer);
+			pos = packer.pack_field(PACK_FIELD_FROM_USERID, (char*)&userId, sizeof(unsigned long long), pos, sendBuffer);
 			if (data != nullptr)
-				pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_DATA, data, dataSize, pos, sendBuffer);
+				pos = packer.pack_field(PACK_FIELD_DATA, data, dataSize, pos, sendBuffer);
 			if (info != nullptr)
-				pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_INFO, info, infoSize, pos, sendBuffer);
+				pos = packer.pack_field(PACK_FIELD_INFO, info, infoSize, pos, sendBuffer);
 			if (userIds != nullptr)
-				pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_USERIDS, (char*)(*userIds).data(), (*userIds).size() * 8, pos, sendBuffer);
+				pos = packer.pack_field(PACK_FIELD_USERIDS, (char*)(*userIds).data(), (*userIds).size() * 8, pos, sendBuffer);
 			if (instance != 0)
-				pos = Megatowel::MultiplexPacking::pack_field(PACK_FIELD_INSTANCEID, (char*)&instance, sizeof(unsigned long long), pos, sendBuffer);
+				pos = packer.pack_field(PACK_FIELD_INSTANCEID, (char*)&instance, sizeof(unsigned long long), pos, sendBuffer);
 			return (void*)enet_packet_create(sendBuffer,
 				pos,
 				flags);
@@ -194,7 +194,7 @@ namespace Megatowel {
 						friendlyEvent.Error = MultiplexErrors::BadPacking;
 					}
 
-					PackingField* data = unpack_fields((char*)event.packet->data, event.packet->dataLength);
+					PackingField* data = packer.unpack_fields((char*)event.packet->data, event.packet->dataLength);
 
 					if (event.channelID == 0) {
 						if (data[PACK_FIELD_ACTION].size == 0) {

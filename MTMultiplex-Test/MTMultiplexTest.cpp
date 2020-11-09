@@ -97,7 +97,7 @@ int main(int argc, char** argv)
 				while (true) {
 					cout << "Type your message: ";
 					getline(cin, message);
-					client.send(message.data(), message.size(), info, (unsigned int)4, 1, true);
+					client.send(message.data(), (unsigned int)message.size(), info, (unsigned int)4, 1, true);
 				}
 			}
 		}

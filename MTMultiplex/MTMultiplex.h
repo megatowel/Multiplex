@@ -124,4 +124,10 @@ namespace Megatowel {
 		extern "C" { MTMULTIPLEX_EXPORT int init_enet(); }
 
 	}
+	namespace MultiplexPacking {
+		struct PackingField {
+			uint16_t size;
+			char* data;
+		};
+	}
 }
