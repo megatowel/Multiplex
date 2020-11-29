@@ -26,6 +26,7 @@ namespace Megatowel {
 
 		MultiplexServer::~MultiplexServer() {
 			delete dataBuffer;
+			delete sendBuffer;
 			delete infoBuffer;
 			if (client != NULL) {
 				enet_host_destroy((ENetHost*)client);

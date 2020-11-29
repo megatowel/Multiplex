@@ -25,6 +25,7 @@ namespace Megatowel {
 
 		MultiplexClient::~MultiplexClient() {
 			delete dataBuffer;
+			delete sendBuffer;
 			delete infoBuffer;
 			if (client != NULL) {
 				enet_host_destroy((ENetHost*)client);
@@ -205,7 +206,7 @@ namespace Megatowel {
 						case MultiplexSystemResponses::InstanceUserJoin: {
 							friendlyEvent.eventType = MultiplexEventType::InstanceUserUpdate;
 							friendlyEvent.channelId = (unsigned int)event.channelID;
-							friendlyEvent.instanceId = (unsigned int)event.channelID;
+							friendlyEvent.instanceId = instanceByChannel[event.channelID];
 							usersByChannel[event.channelID].push_back(friendlyEvent.fromUserId);
 							break;
 						}
