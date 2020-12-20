@@ -15,7 +15,7 @@ if (WIN32)
 	add_custom_command(TARGET MTMultiplex POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PROJECT_BINARY_DIR}/MTMultiplex/MTMultiplex.dll" "${PROJECT_BINARY_DIR}/MTMultiplex-Test/")
 endif()
 
-
+# Link WinSock2 if on Windows for ENet
 if (WIN32)
 	target_link_libraries(MTMultiplex PRIVATE "Ws2_32.lib")
 	target_link_libraries(MTMultiplex PRIVATE "Winmm.lib")
