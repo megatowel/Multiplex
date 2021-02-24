@@ -142,7 +142,7 @@ namespace Megatowel {
 			if (info != nullptr)
 				pos = packer.pack_field(PACK_FIELD_INFO, info, infoSize, pos, sendBuffer);
 			if (userIds != nullptr)
-				pos = packer.pack_field(PACK_FIELD_USERIDS, (char*)(*userIds), userIdsSize * sizeof(unsigned long long), pos, sendBuffer);
+				pos = packer.pack_field(PACK_FIELD_USERIDS, (char*)userIds, userIdsSize * 8, pos, sendBuffer);
 			if (instance != 0)
 				pos = packer.pack_field(PACK_FIELD_INSTANCEID, (char*)&instance, sizeof(unsigned long long), pos, sendBuffer);
 			return (void*)enet_packet_create(sendBuffer,
@@ -249,6 +249,7 @@ namespace Megatowel {
 						friendlyEvent.eventType = MultiplexEventType::UserMessage;
 						friendlyEvent.fromUserId = user->userId;
 						friendlyEvent.channelId = (unsigned int)event.channelID;
+						friendlyEvent.instanceId = currentInstanceId;
 
 						// Copy from packet to class buffer arrays.
 						memcpy(dataBuffer, data[PACK_FIELD_DATA].data, data[PACK_FIELD_DATA].size);

@@ -56,6 +56,7 @@ int main(int argc, char** argv)
 				MultiplexServer server;
 				if (server.setup("0.0.0.0", 3000)) {
 					cout << "Failed to start server." << endl;
+					return 1;
 				}
 				while (true) {
 					server.process_event(5000);
@@ -76,6 +77,7 @@ int main(int argc, char** argv)
 				MultiplexServer server;
 				if (server.setup(argv[2], 3000)) {
 					cout << "Failed to start server." << endl;
+					return 1;
 				}
 				while (true) {
 					server.process_event(5000);
@@ -101,13 +103,22 @@ int main(int argc, char** argv)
 				}
 			}
 		}
-		// Starting client without arguments
+
 		cout << "MTMultiplexTest.exe" << endl;
 		cout << "  Examples:" << endl;
 		cout << "    " << "MTMultiplexTest.exe" << " -client 127.0.0.1" << endl;
 		cout << "    " << "MTMultiplexTest.exe" << " -server (0.0.0.0)" << endl;
+		// Starting server without arguments
 		cout << "Starting Multiplex server (Bound to 0.0.0.0)" << endl;
 
+		MultiplexServer server;
+		if (server.setup("0.0.0.0", 3000)) {
+			cout << "Failed to start server." << endl;
+			return 1;
+		}
+		while (true) {
+			server.process_event(5000);
+		}
 		return 0;
 	}
 }
