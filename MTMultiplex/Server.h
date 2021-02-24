@@ -17,11 +17,10 @@ namespace Megatowel {
 			MTMULTIPLEX_EXPORT int bind_channel(unsigned int channel, unsigned long long instance) override;
 			MTMULTIPLEX_EXPORT int bind_channel(unsigned long long userId, unsigned int channel, unsigned long long instance) override;
 			MTMULTIPLEX_EXPORT MultiplexEvent process_event(unsigned int timeout) override;
-
-		protected:
-			void* create_system_packet(MultiplexSystemResponses responseType,
+			MTMULTIPLEX_EXPORT void* create_system_packet(MultiplexSystemResponses responseType,
 				unsigned long long userId, unsigned long long instance, int flags,
-				char* data = nullptr, size_t dataSize = 0, char* info = nullptr, size_t infoSize = 0, std::vector<unsigned long long>* userIds = nullptr);
+				char* data = nullptr, size_t dataSize = 0, char* info = nullptr, size_t infoSize = 0, unsigned long long* userIds = nullptr, size_t userIdsSize = 0);
+		protected:
 			void* client = NULL;
 			void* peer = NULL;
 			Megatowel::MultiplexPacking::Packing packer;

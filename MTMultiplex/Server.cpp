@@ -99,7 +99,7 @@ namespace Megatowel {
 					Instances.erase(Instances[oldInstance].id);
 				}
 				std::vector<unsigned long long> emptyVector = std::vector<unsigned long long>();
-				ENetPacket* leaveInstancePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceConnected, user->userId, 0, 1, nullptr, 0, nullptr, 0, &emptyVector);
+				ENetPacket* leaveInstancePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceConnected, user->userId, 0, 1, nullptr, 0, nullptr, 0, emptyVector.data(), emptyVector.size());
 				send(0, instanceId, leaveInstancePacket);
 				return 1;
 			}
@@ -124,7 +124,7 @@ namespace Megatowel {
 				users.push_back(it->first);
 			}
 
-			ENetPacket* joinInstancePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceConnected, user->userId, instanceId, 1, nullptr, 0, nullptr, 0, &users);
+			ENetPacket* joinInstancePacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::InstanceConnected, user->userId, instanceId, 1, nullptr, 0, nullptr, 0, users.data(), users.size());
 			send(user->userId, instanceId, joinInstancePacket);
 
 			return 0;
@@ -132,7 +132,7 @@ namespace Megatowel {
 
 		void* MultiplexServer::create_system_packet(MultiplexSystemResponses responseType,
 			unsigned long long userId, unsigned long long instance, int flags,
-			char* data, size_t dataSize, char* info, size_t infoSize, std::vector<unsigned long long>* userIds) {
+			char* data, size_t dataSize, char* info, size_t infoSize, unsigned long long* userIds, size_t userIdsSize) {
 			size_t pos = 0;
 
 			pos = packer.pack_field(PACK_FIELD_RESPONSE_TYPE, (char*)&responseType, sizeof(int), pos, sendBuffer);
@@ -142,7 +142,7 @@ namespace Megatowel {
 			if (info != nullptr)
 				pos = packer.pack_field(PACK_FIELD_INFO, info, infoSize, pos, sendBuffer);
 			if (userIds != nullptr)
-				pos = packer.pack_field(PACK_FIELD_USERIDS, (char*)(*userIds).data(), (*userIds).size() * 8, pos, sendBuffer);
+				pos = packer.pack_field(PACK_FIELD_USERIDS, (char*)(*userIds), userIdsSize * sizeof(unsigned long long), pos, sendBuffer);
 			if (instance != 0)
 				pos = packer.pack_field(PACK_FIELD_INSTANCEID, (char*)&instance, sizeof(unsigned long long), pos, sendBuffer);
 			return (void*)enet_packet_create(sendBuffer,
@@ -261,10 +261,10 @@ namespace Megatowel {
 						friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].size;
 						friendlyEvent.infoSize = (unsigned int)data[PACK_FIELD_INFO].size;
 
-						ENetPacket* relayPacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::Message, user->userId, 0, event.packet->flags,
-							data[PACK_FIELD_DATA].data, data[PACK_FIELD_DATA].size, data[PACK_FIELD_INFO].data, data[PACK_FIELD_INFO].size);
+						//ENetPacket* relayPacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::Message, user->userId, 0, event.packet->flags,
+						//	data[PACK_FIELD_DATA].data, data[PACK_FIELD_DATA].size, data[PACK_FIELD_INFO].data, data[PACK_FIELD_INFO].size);
 						
-						send(0, currentInstanceId, relayPacket);
+						//send(0, currentInstanceId, relayPacket);
 					}
 					// Clean up the packet now that we're done using it.
 					enet_packet_destroy(event.packet);
