@@ -1,7 +1,6 @@
-﻿# CMakeList.txt : CMake project for MTMultiplexTest, include source and define
+﻿# CMakeLists.txt : CMake project for MTMultiplexTest, include source and define
 # project specific logic here.
 #
-cmake_minimum_required (VERSION 3.10)
 
 # We're building an executable.
 add_executable (MTMultiplexTest MTMultiplexTest.cpp MTMultiplexTest.h)

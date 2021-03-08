@@ -1,10 +1,10 @@
 // MTMultiplexTest.h : Include file for standard system include files,
 // or project specific include files.
-
-#pragma once
+#ifndef MTMULTIPLEXTEST_H
+#define MTMULTIPLEXTEST_H
 
 #include <iostream>
 #include <thread>
 #include <string>
 
-// TODO: Reference additional headers your program requires here.
+#endif
