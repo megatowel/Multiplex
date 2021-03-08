@@ -1,5 +1,8 @@
 # Visual Studio user specific cache
-/.vs
+.vs
+
+# Visual Studio Code project preferences
+.vscode
 
 # Visual Studio CMake builds and cache
 /out
