@@ -214,7 +214,7 @@ namespace Megatowel {
 							unsigned int editingChannel = *((unsigned int*)(data[PACK_FIELD_CHANNELID].data));
 							unsigned long long instanceId = *((unsigned long long *)(data[PACK_FIELD_INSTANCEID].data));
 
-							bind_channel(user->userId, editingChannel, instanceId);
+							//bind_channel(user->userId, editingChannel, instanceId);
 
 							friendlyEvent.eventType = MultiplexEventType::InstanceUserUpdate;
 							friendlyEvent.channelId = editingChannel;
