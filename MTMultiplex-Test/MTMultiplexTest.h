@@ -4,7 +4,17 @@
 #define MTMULTIPLEXTEST_H
 
 #include <iostream>
-#include "mingw_stdthreads/mingw.thread.h"
+
+#ifdef __MINGW32__
+    #ifdef __linux__
+        #include "mingw_stdthreads/mingw.thread.h"
+    #else
+        #include <thread>
+    #endif
+#else
+    #include <thread>
+#endif
+
 #include <string>
 
 #endif
