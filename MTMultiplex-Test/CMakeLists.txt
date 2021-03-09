@@ -8,6 +8,7 @@ project ("MTMultiplex")
 
 add_executable (MTMultiplexTest MTMultiplexTest.cpp MTMultiplexTest.h)
 set_property(TARGET MTMultiplexTest PROPERTY CXX_STANDARD 20)
+set_property(TARGET MTMultiplexTest PROPERTY EXCLUDE_FROM_ALL TRUE)
 
 target_include_directories (MTMultiplexTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../MTMultiplex/)
 target_link_libraries (MTMultiplexTest PRIVATE MTMultiplex)
