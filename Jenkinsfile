@@ -35,18 +35,17 @@ stage('Build')
             
             echo '----- CMake project was built successfully -----'
 
-            zip zipFile: 'build-linux64.zip', archive: false, dir: '_build'
-            archiveArtifacts artifacts: 'build-linux64.zip', fingerprint: true
-            
             // run cmake generate and cross compile
             runCommand( 'cmake -E remove_directory _build_win' )                             // make sure the build is clean
             runCommand( 'cmake -H. -B_build_win' )
             runCommand( 'cmake --build _build_win -DCMAKE_TOOLCHAIN_FILE=./cmake/Toolchain-cross-mingw32-linux.cmake' )
             
             echo '----- CMake project was built successfully for Win64 -----'
-            
+
+            zip zipFile: 'build-linux64.zip', archive: false, dir: '_build'
             zip zipFile: 'build-win64.zip', archive: false, dir: '_build_win'
-            archiveArtifacts artifacts: 'build-win64.zip', fingerprint: true
+
+            archiveArtifacts artifacts: 'build-linux64.zip', 'build-win64.zip', fingerprint: true
         }
     }
 }
