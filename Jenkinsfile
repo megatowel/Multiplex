@@ -47,11 +47,11 @@ stage('Build')
             }
         }
 
-        if (ifUnix()) 
-        {
-            // Cross compile for Win64
-            ws(params.CheckoutDirectory)   
-            {   
+        // Cross compile for Win64
+        ws(params.CheckoutDirectory)   
+        {   
+            if (ifUnix()) 
+            {
                 // debug info
                 printJobParameter()
                 
