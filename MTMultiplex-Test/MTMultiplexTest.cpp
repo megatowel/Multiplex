@@ -110,8 +110,8 @@ int main(int argc, char **argv)
 				return 1;
 			}
 			client.bind_channel(1, 1);
-			std::thread t1(events_thread, client);
-			std::string message;
+			thread t1(events_thread, client);
+			string message;
 			while (true)
 			{
 				cout << "Type your message: ";
