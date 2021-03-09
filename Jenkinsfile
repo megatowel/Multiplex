@@ -37,8 +37,8 @@ stage('Build')
 
             // run cmake generate and cross compile
             runCommand( 'cmake -E remove_directory _build_win' )                             // make sure the build is clean
-            runCommand( 'cmake -H. -B_build_win' )
-            runCommand( 'cmake --build _build_win -DCMAKE_TOOLCHAIN_FILE=./cmake/Toolchain-cross-mingw32-linux.cmake' )
+            runCommand( 'cmake -H. -B_build_win -DCMAKE_TOOLCHAIN_FILE=./cmake/Toolchain-cross-mingw32-linux.cmake' )
+            runCommand( 'cmake --build _build_win' )
             
             echo '----- CMake project was built successfully for Win64 -----'
 
