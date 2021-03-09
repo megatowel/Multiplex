@@ -1,6 +1,8 @@
 ﻿# CMakeLists.txt : CMake project for MTMultiplex, include source and define
 # project specific logic here.
 #
+cmake_minimum_required (VERSION 3.18)
+project ("MTMultiplex")
 
 add_subdirectory ("./ENet")
 # Add source to this project's executable.

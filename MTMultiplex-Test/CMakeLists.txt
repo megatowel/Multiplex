@@ -3,6 +3,9 @@
 #
 
 # We're building an executable.
+cmake_minimum_required (VERSION 3.18)
+project ("MTMultiplex")
+
 add_executable (MTMultiplexTest MTMultiplexTest.cpp MTMultiplexTest.h)
 set_property(TARGET MTMultiplexTest PROPERTY CXX_STANDARD 20)
 
