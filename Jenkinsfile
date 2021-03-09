@@ -39,13 +39,8 @@ stage('Build')
             {
 			    zip zipFile: 'build-linux64.zip', archive: false, dir: '_build'
 			    archiveArtifacts artifacts: 'build-linux64.zip', fingerprint: true
-
-                // debug info
-                printJobParameter()
                 
-                checkout scm
-                
-                // run cmake generate and build
+                // run cmake generate and cross compile
                 runCommand( 'cmake -E remove_directory _build_win' )                             // make sure the build is clean
                 runCommand( 'cmake -H. -B_build_win' )
                 runCommand( 'cmake --build _build_win -DCMAKE_TOOLCHAIN_FILE=./cmake/Toolchain-cross-mingw32-linux.cmake' )
