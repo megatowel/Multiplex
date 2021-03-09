@@ -45,7 +45,8 @@ stage('Build')
             zip zipFile: 'build-linux64.zip', archive: false, dir: '_build'
             zip zipFile: 'build-win64.zip', archive: false, dir: '_build_win'
 
-            archiveArtifacts artifacts: 'build-linux64.zip', 'build-win64.zip', fingerprint: true
+            archiveArtifacts artifacts: 'build-linux64.zip', fingerprint: true
+            archiveArtifacts artifacts: 'build-win64.zip', fingerprint: true
         }
     }
 }
