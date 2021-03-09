@@ -39,19 +39,7 @@ stage('Build')
             {
 			    zip zipFile: 'build-linux64.zip', archive: false, dir: '_build'
 			    archiveArtifacts artifacts: 'build-linux64.zip', fingerprint: true
-            }
-            else 
-            {
-                zip zipFile: 'build.zip', archive: false, dir: '_build'
-			    archiveArtifacts artifacts: 'build.zip', fingerprint: true
-            }
-        }
 
-        // Cross compile for Win64
-        ws(params.CheckoutDirectory)   
-        {   
-            if (ifUnix()) 
-            {
                 // debug info
                 printJobParameter()
                 
@@ -66,6 +54,11 @@ stage('Build')
                 
                 zip zipFile: 'build-win64.zip', archive: false, dir: '_build_win'
                 archiveArtifacts artifacts: 'build-win64.zip', fingerprint: true
+            }
+            else 
+            {
+                zip zipFile: 'build.zip', archive: false, dir: '_build'
+			    archiveArtifacts artifacts: 'build.zip', fingerprint: true
             }
         }
     }
