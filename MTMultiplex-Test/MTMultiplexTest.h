@@ -4,7 +4,7 @@
 #define MTMULTIPLEXTEST_H
 
 #include <iostream>
-#include <thread>
+#include "mingw_stdthreads/mingw.thread.h"
 #include <string>
 
 #endif
