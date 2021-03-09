@@ -20,8 +20,7 @@ stage('Build')
 {
     node(params.BuildSlaveTag)
     {
-        // acquiering an extra workspace seems to be necessary to prevent interaction between
-        // the parallel run nodes, although node() should already create an own workspace.
+        // Build for native platform
         ws(params.CheckoutDirectory)   
         {   
             // debug info
@@ -34,10 +33,40 @@ stage('Build')
             runCommand( 'cmake -H. -B_build' )
             runCommand( 'cmake --build _build' )
             
-            echo '----- CMake project was build successfully -----'
-			
-			zip zipFile: 'build.zip', archive: false, dir: '_build'
-			archiveArtifacts artifacts: 'build.zip', fingerprint: true
+            echo '----- CMake project was built successfully -----'
+
+			if (ifUnix()) 
+            {
+			    zip zipFile: 'build-linux64.zip', archive: false, dir: '_build'
+			    archiveArtifacts artifacts: 'build-linux64.zip', fingerprint: true
+            }
+            else 
+            {
+                zip zipFile: 'build.zip', archive: false, dir: '_build'
+			    archiveArtifacts artifacts: 'build.zip', fingerprint: true
+            }
+        }
+
+        if (ifUnix()) 
+        {
+            // Cross compile for Win64
+            ws(params.CheckoutDirectory)   
+            {   
+                // debug info
+                printJobParameter()
+                
+                checkout scm
+                
+                // run cmake generate and build
+                runCommand( 'cmake -E remove_directory _build_win' )                             // make sure the build is clean
+                runCommand( 'cmake -H. -B_build_win' )
+                runCommand( 'cmake --build _build_win -DCMAKE_TOOLCHAIN_FILE=./cmake/Toolchain-cross-mingw32-linux.cmake' )
+                
+                echo '----- CMake project was built successfully for Win64 -----'
+                
+                zip zipFile: 'build-win64.zip', archive: false, dir: '_build_win'
+                archiveArtifacts artifacts: 'build-win64.zip', fingerprint: true
+            }
         }
     }
 }
