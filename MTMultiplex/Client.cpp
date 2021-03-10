@@ -13,9 +13,9 @@ namespace Megatowel {
 	namespace Multiplex {
 
 		MultiplexClient::MultiplexClient() {
-			dataBuffer = new char[65535];
-			sendBuffer = new char[65535];
-			infoBuffer = new char[128];
+			dataBuffer = new char[MAX_MULTIPLEX_DATA_SIZE];
+			sendBuffer = new char[MAX_MULTIPLEX_DATA_SIZE];
+			infoBuffer = new char[MAX_MULTIPLEX_DATA_SIZE];
 			packer = Packing();
 			userIdsBuffer = new unsigned long long[128];
 			for (auto i = 0; i < MAX_MULTIPLEX_CHANNELS; i++) {

@@ -18,9 +18,9 @@ namespace Megatowel {
 	namespace Multiplex {
 
 		MultiplexServer::MultiplexServer() {
-			dataBuffer = new char[65535];
-			sendBuffer = new char[65535];
-			infoBuffer = new char[128];
+			dataBuffer = new char[MAX_MULTIPLEX_DATA_SIZE];
+			sendBuffer = new char[MAX_MULTIPLEX_DATA_SIZE];
+			infoBuffer = new char[MAX_MULTIPLEX_DATA_SIZE];
 			packer = Packing();
 		}
 
