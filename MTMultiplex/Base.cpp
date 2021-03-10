@@ -4,9 +4,10 @@
 
 using namespace std;
 
-namespace Megatowel {
-	namespace Multiplex {
-
+namespace Megatowel
+{
+	namespace Multiplex
+	{
 		int init_enet()
 		{
 			if (enet_initialize() != 0)
