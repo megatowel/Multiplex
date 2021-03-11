@@ -8,6 +8,10 @@ namespace Megatowel
 {
 	namespace Multiplex
 	{
+		MultiplexBase::MultiplexBase() {
+			init_enet();
+		}
+
 		int init_enet()
 		{
 			if (enet_initialize() != 0)

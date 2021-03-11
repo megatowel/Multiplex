@@ -50,7 +50,7 @@ int c_setup(MultiplexBase *multiplex, char *hostname, int port)
 
 void *c_create_system_packet(MultiplexBase *multiplex, MultiplexSystemResponses responseType,
 							 unsigned long long userId, unsigned long long instance, int flags,
-							 char *data, size_t dataSize, char *info, size_t infoSize, unsigned long long *userIds, size_t userIdsSize)
+							 const char *data, size_t dataSize, const char *info, size_t infoSize, unsigned long long *userIds, size_t userIdsSize)
 {
 	MultiplexServer *server = (MultiplexServer *)multiplex;
 	return server->create_system_packet(responseType, userId, instance, flags, data, dataSize, info, infoSize, userIds, userIdsSize);

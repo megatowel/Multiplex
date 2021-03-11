@@ -15,6 +15,7 @@ namespace Megatowel
 		class MultiplexBase
 		{
 		public:
+			MTMULTIPLEX_EXPORT MultiplexBase();
 			MTMULTIPLEX_EXPORT virtual int setup(const char *hostname, int port) = 0;
 			MTMULTIPLEX_EXPORT virtual int disconnect(unsigned int timeout) = 0;
 			MTMULTIPLEX_EXPORT virtual int send(const char *data, unsigned int dataLength, const char *info, unsigned int infoLength, unsigned int channel, int flags = 0) = 0;
@@ -27,6 +28,9 @@ namespace Megatowel
 			void *client = NULL;
 			void *peer = NULL;
 		};
+
+		// we need this, but internal
+		int init_enet();
 	}
 }
 #endif

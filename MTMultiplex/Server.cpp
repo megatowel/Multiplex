@@ -149,16 +149,16 @@ namespace Megatowel
 
 		void *MultiplexServer::create_system_packet(MultiplexSystemResponses responseType,
 													unsigned long long userId, unsigned long long instance, int flags,
-													char *data, size_t dataSize, char *info, size_t infoSize, unsigned long long *userIds, size_t userIdsSize)
+													const char *data, size_t dataSize, const char *info, size_t infoSize, unsigned long long *userIds, size_t userIdsSize)
 		{
 			size_t pos = 0;
 
 			pos = packer.pack_field(PACK_FIELD_RESPONSE_TYPE, (char *)&responseType, sizeof(int), pos, sendBuffer);
 			pos = packer.pack_field(PACK_FIELD_FROM_USERID, (char *)&userId, sizeof(unsigned long long), pos, sendBuffer);
 			if (data != nullptr)
-				pos = packer.pack_field(PACK_FIELD_DATA, data, dataSize, pos, sendBuffer);
+				pos = packer.pack_field(PACK_FIELD_DATA, (char*)data, dataSize, pos, sendBuffer);
 			if (info != nullptr)
-				pos = packer.pack_field(PACK_FIELD_INFO, info, infoSize, pos, sendBuffer);
+				pos = packer.pack_field(PACK_FIELD_INFO, (char*)info, infoSize, pos, sendBuffer);
 			if (userIds != nullptr)
 				pos = packer.pack_field(PACK_FIELD_USERIDS, (char *)userIds, userIdsSize * 8, pos, sendBuffer);
 			if (instance != 0)

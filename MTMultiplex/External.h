@@ -25,7 +25,7 @@ extern "C"
 	MTMULTIPLEX_EXPORT int c_disconnect(MultiplexBase *multiplex, unsigned int timeout);
 	MTMULTIPLEX_EXPORT void *c_create_system_packet(MultiplexBase *multiplex, MultiplexSystemResponses responseType,
 													unsigned long long userId, unsigned long long instance, int flags,
-													char *data, size_t dataSize, char *info, size_t infoSize, unsigned long long *userIds, size_t userIdsSize);
+													const char *data, size_t dataSize, const char *info, size_t infoSize, unsigned long long *userIds, size_t userIdsSize);
 	MTMULTIPLEX_EXPORT int c_send(MultiplexBase *multiplex, const char *data, unsigned int dataLength, const char *info, unsigned int infoLength, unsigned int channel, int flags = 0);
 	MTMULTIPLEX_EXPORT int c_send_server(MultiplexBase *multiplex, unsigned long long userId, unsigned long long instanceId, void *packet);
 	MTMULTIPLEX_EXPORT int c_bind_channel(MultiplexBase *multiplex, unsigned int channel, unsigned long long instance);
