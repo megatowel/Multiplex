@@ -15,8 +15,6 @@ target_link_libraries(MTMultiplex PRIVATE enet)
 # Link WinSock2 if on Windows for ENet
 if (WIN32)
 	target_link_libraries(MTMultiplex PRIVATE "ws2_32")
-	IF(NOT MINGW)
-		target_link_libraries(MTMultiplex PRIVATE "Winmm")
 elseif(UNIX)
 endif()
 
