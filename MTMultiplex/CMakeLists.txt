@@ -17,6 +17,7 @@ if (WIN32)
 	target_link_libraries(MTMultiplex PRIVATE "ws2_32")
 	if (MSVC)
 		target_link_libraries(MTMultiplex PRIVATE "Winmm")
+	endif()
 elseif(UNIX)
 endif()
 
