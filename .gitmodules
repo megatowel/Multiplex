@@ -1,3 +1,6 @@
 [submodule "MTMultiplex/ENet"]
-	path = MTMultiplex/ENet
+	path = ENet
+	url = https://github.com/lsalzman/enet.git
+[submodule "ENet"]
+	path = ENet
 	url = https://github.com/lsalzman/enet.git
