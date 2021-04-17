@@ -20,6 +20,9 @@ target_link_libraries(MTMultiplexlib PRIVATE enet)
 add_library(MTMultiplex_shared SHARED $<TARGET_OBJECTS:MTMultiplexlib>)
 add_library(MTMultiplex_static STATIC $<TARGET_OBJECTS:MTMultiplexlib>)
 
+set_property(TARGET MTMultiplex_shared PROPERTY OUTPUT_NAME libmultiplex)
+set_property(TARGET MTMultiplex_static PROPERTY OUTPUT_NAME libmultiplex)
+
 # Link WinSock2 if on Windows for ENet
 if (WIN32)
 	target_link_libraries(MTMultiplex_shared PRIVATE "ws2_32")
