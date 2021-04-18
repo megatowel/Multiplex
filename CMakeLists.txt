@@ -16,7 +16,6 @@ set_property (TARGET Multiplex PROPERTY POSITION_INDEPENDENT_CODE 1)
 set_property (TARGET Multiplex PROPERTY CXX_STANDARD 20)
 
 target_include_directories (Multiplex PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ENet/include/)
-target_link_libraries (Multiplex PRIVATE enet)
 
 IF (${MULTIPLEX_BUILD_STATIC})
 	add_library (libmultiplex STATIC $<TARGET_OBJECTS:Multiplex>)
@@ -24,9 +23,11 @@ ELSE ()
 	add_library (libmultiplex SHARED $<TARGET_OBJECTS:Multiplex>)
 ENDIF ()
 
+target_link_libraries (libmultiplex PRIVATE enet)
+
 set_property (TARGET libmultiplex PROPERTY OUTPUT_NAME multiplex)
 
-# Link WinSock2 if on Windows for ENet
+# Link WinSock2 if on Windows (for ENet)
 IF (WIN32)
 	target_link_libraries(libmultiplex PRIVATE "ws2_32")
 	IF (MSVC)
