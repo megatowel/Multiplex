@@ -1,35 +1,36 @@
-﻿# CMakeLists.txt : CMake project for MTMultiplex, include source and define
-# project specific logic here.
-#
-cmake_minimum_required (VERSION 3.18)
-project ("MTMultiplex")
+﻿cmake_minimum_required (VERSION 3.18)
 
+project (multiplex)
+option (MULTIPLEX_BUILD_STATIC "Build Multiplex for static linking instead of dynamic linking")
+
+# Build and include ENet
 add_subdirectory ("./ENet")
 
-set(MTMultiplexsrc "Base.cpp" "Client.cpp" "Server.cpp" "External.cpp" "External.h" "Packing.cpp" "Packing.h")
+# Source files to build
+set (MULTIPLEX_SOURCE "Base.cpp" "Client.cpp" "Server.cpp" "External.cpp" "Packing.cpp")
+source_group (source FILES ${MULTIPLEX_SOURCE})
 
-add_library(MTMultiplexlib OBJECT ${MTMultiplexsrc})
+add_library (Multiplex OBJECT ${MULTIPLEX_SOURCE})
 
-set_property(TARGET MTMultiplexlib PROPERTY POSITION_INDEPENDENT_CODE 1)
+set_property (TARGET Multiplex PROPERTY POSITION_INDEPENDENT_CODE 1)
+set_property (TARGET Multiplex PROPERTY CXX_STANDARD 20)
 
-set_property(TARGET MTMultiplexlib PROPERTY CXX_STANDARD 20)
+target_include_directories (Multiplex PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ENet/include/)
+target_link_libraries (Multiplex PRIVATE enet)
 
-target_include_directories(MTMultiplexlib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ENet/include/)
-target_link_libraries(MTMultiplexlib PRIVATE enet)
+IF (${MULTIPLEX_BUILD_STATIC})
+	add_library (libmultiplex STATIC $<TARGET_OBJECTS:Multiplex>)
+ELSE ()
+	add_library (libmultiplex SHARED $<TARGET_OBJECTS:Multiplex>)
+ENDIF ()
 
-add_library(MTMultiplex_shared SHARED $<TARGET_OBJECTS:MTMultiplexlib>)
-add_library(MTMultiplex_static STATIC $<TARGET_OBJECTS:MTMultiplexlib>)
-
-set_property(TARGET MTMultiplex_shared PROPERTY OUTPUT_NAME libmultiplex)
-set_property(TARGET MTMultiplex_static PROPERTY OUTPUT_NAME libmultiplex)
+set_property (TARGET libmultiplex PROPERTY OUTPUT_NAME multiplex)
 
 # Link WinSock2 if on Windows for ENet
-if (WIN32)
-	target_link_libraries(MTMultiplex_shared PRIVATE "ws2_32")
-	target_link_libraries(MTMultiplex_static PRIVATE "ws2_32")
-	if (MSVC)
-		target_link_libraries(MTMultiplex_shared PRIVATE "Winmm")
-		target_link_libraries(MTMultiplex_static PRIVATE "Winmm")
-	endif()
-elseif(UNIX)
-endif()
+IF (WIN32)
+	target_link_libraries(libmultiplex PRIVATE "ws2_32")
+	IF (MSVC)
+		target_link_libraries(libmultiplex PRIVATE "Winmm")
+	ENDIF ()
+ELSEIF (UNIX)
+ENDIF ()

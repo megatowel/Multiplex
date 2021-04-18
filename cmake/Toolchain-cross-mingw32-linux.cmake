@@ -9,8 +9,8 @@ SET(CMAKE_SYSTEM_NAME Windows)
 
 # for 32 or 64 bits mingw-w64
 # see http://mingw-w64.sourceforge.net/
-set(COMPILER_PREFIX "i686-w64-mingw32")
-#set(COMPILER_PREFIX "x86_64-w64-mingw32"
+#set(COMPILER_PREFIX "i686-w64-mingw32")
+set(COMPILER_PREFIX "x86_64-w64-mingw32"
 
 # which compilers to use for C and C++
 find_program(CMAKE_RC_COMPILER NAMES ${COMPILER_PREFIX}-windres)
@@ -20,9 +20,6 @@ find_program(CMAKE_C_COMPILER NAMES ${COMPILER_PREFIX}-gcc)
 find_program(CMAKE_CXX_COMPILER NAMES ${COMPILER_PREFIX}-g++)
 #SET(CMAKE_CXX_COMPILER ${COMPILER_PREFIX}-g++)
 
-
-# here is the target environment located
-SET(USER_ROOT_PATH /home/erk/erk-win32-dev)
 SET(CMAKE_FIND_ROOT_PATH  /usr/${COMPILER_PREFIX} ${USER_ROOT_PATH})
 
 # adjust the default behaviour of the FIND_XXX() commands:
