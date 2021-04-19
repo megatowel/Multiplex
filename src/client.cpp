@@ -1,10 +1,9 @@
 ﻿// This unit is for client functionality.
 //
 
+#include "multiplex/client.hpp"
 #include <enet/enet.h>
-#include "MTMultiplex.h"
-#include "Base.h"
-#include "Client.h"
+
 
 using namespace std;
 using namespace Megatowel::MultiplexPacking;

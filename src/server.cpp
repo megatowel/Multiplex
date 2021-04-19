@@ -1,10 +1,10 @@
 ﻿// This unit is for server functionality.
 //
 
+#include "multiplex/server.hpp"
+#include "multiplex/multiplex.hpp"
+#include "multiplex/base.hpp"
 #include <enet/enet.h>
-#include "MTMultiplex.h"
-#include "Base.h"
-#include "Server.h"
 #include <random>
 
 using namespace std;
@@ -18,8 +18,8 @@ namespace Megatowel
 {
 	namespace Multiplex
 	{
-
-		MultiplexServer::MultiplexServer() {
+		MultiplexServer::MultiplexServer()
+		{
 			dataBuffer = new char[MAX_MULTIPLEX_DATA_SIZE];
 			sendBuffer = new char[MAX_MULTIPLEX_DATA_SIZE];
 			infoBuffer = new char[MAX_MULTIPLEX_DATA_SIZE];
@@ -156,9 +156,9 @@ namespace Megatowel
 			pos = packer.pack_field(PACK_FIELD_RESPONSE_TYPE, (char *)&responseType, sizeof(int), pos, sendBuffer);
 			pos = packer.pack_field(PACK_FIELD_FROM_USERID, (char *)&userId, sizeof(unsigned long long), pos, sendBuffer);
 			if (data != nullptr)
-				pos = packer.pack_field(PACK_FIELD_DATA, (char*)data, dataSize, pos, sendBuffer);
+				pos = packer.pack_field(PACK_FIELD_DATA, (char *)data, dataSize, pos, sendBuffer);
 			if (info != nullptr)
-				pos = packer.pack_field(PACK_FIELD_INFO, (char*)info, infoSize, pos, sendBuffer);
+				pos = packer.pack_field(PACK_FIELD_INFO, (char *)info, infoSize, pos, sendBuffer);
 			if (userIds != nullptr)
 				pos = packer.pack_field(PACK_FIELD_USERIDS, (char *)userIds, userIdsSize * 8, pos, sendBuffer);
 			if (instance != 0)

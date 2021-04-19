@@ -1,4 +1,4 @@
-#include "Packing.h"
+#include "multiplex/packing.hpp"
 
 namespace Megatowel
 {
@@ -8,7 +8,7 @@ namespace Megatowel
 
 		Packing::Packing()
 		{
-			for (int i = 0; i < 256; i++)
+			for (int i = 0; i < sizeof(fields) / sizeof(fields[0]); i++)
 			{
 				fields[i] = PackingField();
 			}

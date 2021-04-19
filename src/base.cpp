@@ -1,5 +1,4 @@
-#include "Base.h"
-#include "MTMultiplex.h"
+#include "multiplex/base.hpp"
 #include <enet/enet.h>
 
 using namespace std;

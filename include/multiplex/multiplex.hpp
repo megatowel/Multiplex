@@ -1,24 +1,24 @@
 ﻿/// @file MTMultiplex.h
 /// @brief This file contains general library exports.
-#ifndef MTMULTIPLEX_H
-#define MTMULTIPLEX_H
+#ifndef MULTIPLEX_H
+#define MULTIPLEX_H
 
 #pragma region Export defines
-#ifndef MTMULTIPLEX_EXPORT_H
-#define MTMULTIPLEX_EXPORT_H
+#ifndef MULTIPLEX_EXPORT_H
+#define MULTIPLEX_EXPORT_H
 
 #if defined(_MSC_VER)
 //  Microsoft
-#define MTMULTIPLEX_EXPORT __declspec(dllexport)
-#define MTMULTIPLEX_IMPORT __declspec(dllimport)
+#define MULTIPLEX_EXPORT __declspec(dllexport)
+#define MULTIPLEX_IMPORT __declspec(dllimport)
 #elif defined(__GNUC__)
 //  GCC
-#define MTMULTIPLEX_EXPORT __attribute__((visibility("default")))
-#define MTMULTIPLEX_IMPORT
+#define MULTIPLEX_EXPORT __attribute__((visibility("default")))
+#define MULTIPLEX_IMPORT
 #else
 //  do nothing and hope for the best?
-#define MTMULTIPLEX_EXPORT
-#define MTMULTIPLEX_IMPORT
+#define MULTIPLEX_EXPORT
+#define MULTIPLEX_IMPORT
 #pragma warning Unknown dynamic link import / export semantics.
 #endif
 
