@@ -1,25 +1,20 @@
 #include "multiplex/base.hpp"
 #include <enet/enet.h>
 
-using namespace std;
+using namespace Megatowel::Multiplex;
 
-namespace Megatowel
+MultiplexBase::MultiplexBase()
 {
-	namespace Multiplex
-	{
-		MultiplexBase::MultiplexBase() {
-			init_enet();
-		}
+	init_enet();
+}
 
-		int init_enet()
-		{
-			if (enet_initialize() != 0)
-			{
-				fprintf(stderr, "An error occurred while initializing ENet.\n");
-				return EXIT_FAILURE;
-			}
-			atexit(enet_deinitialize);
-			return 0;
-		}
+int init_enet()
+{
+	if (enet_initialize() != 0)
+	{
+		fprintf(stderr, "An error occurred while initializing ENet.\n");
+		return EXIT_FAILURE;
 	}
+	atexit(enet_deinitialize);
+	return 0;
 }

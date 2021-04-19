@@ -145,10 +145,7 @@ namespace Megatowel
 			unsigned long long channelInstances[MAX_MULTIPLEX_CHANNELS];
 			void *peer;
 		};
-	}
 
-	namespace MultiplexPacking
-	{
 		struct PackingField
 		{
 			uint16_t size;

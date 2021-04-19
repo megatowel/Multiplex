@@ -10,7 +10,6 @@
 #include "packing.hpp"
 
 using namespace Megatowel::Multiplex;
-using namespace Megatowel::MultiplexPacking;
 
 extern "C"
 {

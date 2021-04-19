@@ -30,7 +30,7 @@ namespace Megatowel
 		protected:
 			void *client = NULL;
 			void *peer = NULL;
-			Megatowel::MultiplexPacking::Packing packer;
+			Megatowel::Multiplex::Packing packer;
 			// Our buffers that we can safely use ;>
 			char *dataBuffer = NULL;
 			char *infoBuffer = NULL;
