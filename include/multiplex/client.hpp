@@ -30,14 +30,13 @@ namespace Megatowel
 		protected:
 			void *client = NULL;
 			void *peer = NULL;
-			Megatowel::Multiplex::Packing packer;
-			// Our buffers that we can safely use ;>
+			Packer packer;
 			char *dataBuffer = NULL;
 			char *infoBuffer = NULL;
 			char *sendBuffer = NULL;
 			unsigned long long *userIdsBuffer = NULL;
-			std::vector<unsigned long long> usersByChannel[MAX_MULTIPLEX_CHANNELS];
-			unsigned long long instanceByChannel[MAX_MULTIPLEX_CHANNELS];
+			std::vector<unsigned long long> usersByChannel[MULTIPLEX_MAX_CHANNELS];
+			unsigned long long instanceByChannel[MULTIPLEX_MAX_CHANNELS];
 		};
 	}
 }

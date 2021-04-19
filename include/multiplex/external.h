@@ -15,12 +15,12 @@ extern "C"
 {
 	MULTIPLEX_EXPORT MultiplexClient *c_make_client();
 	MULTIPLEX_EXPORT MultiplexServer *c_make_server();
-	MULTIPLEX_EXPORT Packing *c_make_packer();
-	MULTIPLEX_EXPORT PackingField *c_unpack_fields(Packing *packer, char *source, size_t size);
-	MULTIPLEX_EXPORT size_t c_pack_field(Packing *packer, uint8_t fieldNum, char *fieldData, size_t fieldSize, size_t currentPos, char *destChar);
+	MULTIPLEX_EXPORT Packer *c_make_packer();
+	MULTIPLEX_EXPORT PackingField *c_unpack_fields(Packer *packer, char *source, size_t size);
+	MULTIPLEX_EXPORT size_t c_pack_field(Packer *packer, uint8_t fieldNum, char *fieldData, size_t fieldSize, size_t currentPos, char *destChar);
 	MULTIPLEX_EXPORT int c_setup(MultiplexBase *multiplex, char *hostname, int port);
 	MULTIPLEX_EXPORT int c_destroy(MultiplexBase *multiplex);
-	MULTIPLEX_EXPORT int c_destroy_packer(Packing *packer);
+	MULTIPLEX_EXPORT int c_destroy_packer(Packer *packer);
 	MULTIPLEX_EXPORT int c_disconnect(MultiplexBase *multiplex, unsigned int timeout);
 	MULTIPLEX_EXPORT void *c_create_system_packet(MultiplexBase *multiplex, MultiplexSystemResponses responseType,
 												  unsigned long long userId, unsigned long long instance, int flags,

@@ -28,9 +28,6 @@ namespace Megatowel
 			void *client = NULL;
 			void *peer = NULL;
 		};
-
-		// we need this, but internal
-		int init_enet();
 	}
 }
 #endif

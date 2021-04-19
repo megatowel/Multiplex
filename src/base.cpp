@@ -3,11 +3,6 @@
 
 using namespace Megatowel::Multiplex;
 
-MultiplexBase::MultiplexBase()
-{
-	init_enet();
-}
-
 int init_enet()
 {
 	if (enet_initialize() != 0)
@@ -17,4 +12,9 @@ int init_enet()
 	}
 	atexit(enet_deinitialize);
 	return 0;
+}
+
+MultiplexBase::MultiplexBase()
+{
+	init_enet();
 }

@@ -4,7 +4,7 @@ using namespace Megatowel::Multiplex;
 
 PackingField fields[256];
 
-Packing::Packing()
+Packer::Packer()
 {
 	for (int i = 0; i < sizeof(fields) / sizeof(fields[0]); i++)
 	{
@@ -12,7 +12,7 @@ Packing::Packing()
 	}
 }
 
-PackingField *Packing::unpack_fields(char *source, size_t size)
+PackingField *Packer::unpack_fields(char *source, size_t size)
 {
 	size_t readBytes = 0;
 	uint8_t currentField;
@@ -32,7 +32,7 @@ PackingField *Packing::unpack_fields(char *source, size_t size)
 	return fields;
 }
 
-size_t Packing::pack_field(uint8_t fieldNum, char *fieldData, size_t fieldSize, size_t currentPos, char *destChar)
+size_t Packer::pack_field(uint8_t fieldNum, char *fieldData, size_t fieldSize, size_t currentPos, char *destChar)
 {
 	uint16_t size16 = (uint16_t)fieldSize;
 	memcpy((destChar + currentPos), &(fieldNum), sizeof(uint8_t));

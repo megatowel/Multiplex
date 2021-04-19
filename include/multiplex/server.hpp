@@ -30,13 +30,12 @@ namespace Megatowel
 		protected:
 			void *client = NULL;
 			void *peer = NULL;
-			Megatowel::Multiplex::Packing packer;
-			// Our buffers that we can safely use ;>
+			Packer packer;
 			char *dataBuffer = NULL;
 			char *infoBuffer = NULL;
 			char *sendBuffer = NULL;
-			std::map<unsigned long long, MultiplexUser *> Users;
-			std::map<unsigned long long, MultiplexInstance> Instances;
+			std::map<unsigned long long, std::unique_ptr<MultiplexUser>> users;
+			std::map<unsigned long long, MultiplexInstance> instances;
 		};
 	}
 }

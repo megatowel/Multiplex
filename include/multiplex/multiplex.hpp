@@ -3,10 +3,7 @@
 #ifndef MULTIPLEX_H
 #define MULTIPLEX_H
 
-#pragma region Export defines
-#ifndef MULTIPLEX_EXPORT_H
-#define MULTIPLEX_EXPORT_H
-
+// Library export macro
 #if defined(_MSC_VER)
 //  Microsoft
 #define MULTIPLEX_EXPORT __declspec(dllexport)
@@ -22,19 +19,17 @@
 #pragma warning Unknown dynamic link import / export semantics.
 #endif
 
-#endif /* MTMULTIPLEX_EXPORT_H */
-#pragma endregion
-
 #include <iostream>
 #include <map>
 #include <vector>
 #include <string>
 #include <algorithm>
 #include <cstring>
+#include <memory>
 
-#define MAX_MULTIPLEX_CHANNELS 32 /* The amount of instance channels. */
-#define MAX_MULTIPLEX_SERVER_CONNECTIONS 1024
-#define MAX_MULTIPLEX_DATA_SIZE 65535
+#define MULTIPLEX_MAX_CHANNELS 32 /* The amount of instance channels. */
+#define MULTIPLEX_MAX_SERVER_CONNECTIONS 1024
+#define MULTIPLEX_MAX_DATA_SIZE 65535
 
 #define PACK_FIELD_RESPONSE_TYPE 0
 #define PACK_FIELD_FROM_USERID 1
@@ -69,7 +64,7 @@ namespace Megatowel
 		};
 
 		/// @enum MultiplexEventType
-		/// @brief Describes what type of event an event was, externally
+		/// @brief Describes what type of event an event was.
 		enum class MultiplexEventType
 		{
 			Error = -1,
@@ -142,7 +137,7 @@ namespace Megatowel
 		struct MultiplexUser
 		{
 			unsigned long long userId;
-			unsigned long long channelInstances[MAX_MULTIPLEX_CHANNELS];
+			unsigned long long channelInstances[MULTIPLEX_MAX_CHANNELS];
 			void *peer;
 		};
 

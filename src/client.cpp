@@ -9,12 +9,12 @@ using namespace Megatowel::Multiplex;
 
 MultiplexClient::MultiplexClient()
 {
-	dataBuffer = new char[MAX_MULTIPLEX_DATA_SIZE];
-	sendBuffer = new char[MAX_MULTIPLEX_DATA_SIZE];
-	infoBuffer = new char[MAX_MULTIPLEX_DATA_SIZE];
-	packer = Packing();
+	dataBuffer = new char[MULTIPLEX_MAX_DATA_SIZE];
+	sendBuffer = new char[MULTIPLEX_MAX_DATA_SIZE];
+	infoBuffer = new char[MULTIPLEX_MAX_DATA_SIZE];
 	userIdsBuffer = new unsigned long long[128];
-	for (auto i = 0; i < MAX_MULTIPLEX_CHANNELS; i++)
+	packer = Packer();
+	for (auto i = 0; i < MULTIPLEX_MAX_CHANNELS; i++)
 	{
 		instanceByChannel[i] = 0;
 	}
@@ -22,9 +22,10 @@ MultiplexClient::MultiplexClient()
 
 MultiplexClient::~MultiplexClient()
 {
-	delete dataBuffer;
-	delete sendBuffer;
-	delete infoBuffer;
+	delete[] dataBuffer;
+	delete[] sendBuffer;
+	delete[] infoBuffer;
+	delete[] userIdsBuffer;
 	if (client != NULL)
 	{
 		enet_host_destroy((ENetHost *)client);
@@ -57,7 +58,7 @@ int MultiplexClient::setup(const char *host_name, int port)
 	cout << "Multiplex Client is being created" << endl;
 	client = enet_host_create(NULL,						  //create a client host
 							  1,						  // connections limit
-							  MAX_MULTIPLEX_CHANNELS + 1, // Refer to the definition of MAX_MULTIPLEX_CHANNELS.
+							  MULTIPLEX_MAX_CHANNELS + 1, // Refer to the definition of MULTIPLEX_MAX_CHANNELS.
 							  0,						  // assume any amount of incoming bandwidth
 							  0);						  // assume any amount of outgoing bandwidth
 	if (client == NULL)
@@ -71,9 +72,9 @@ int MultiplexClient::setup(const char *host_name, int port)
 
 	enet_address_set_host(&address, host_name);
 	address.port = port;
-	// Initiate the connection, allocating the two channels 0 and MAX_MULTIPLEX_CHANNELS.
+	// Initiate the connection, allocating the two channels 0 and MULTIPLEX_MAX_CHANNELS.
 	cout << "Connecting to Multiplex server... Host: " << host_name << " Port: " << port << endl;
-	peer = enet_host_connect((ENetHost *)client, &address, MAX_MULTIPLEX_CHANNELS + 1, 0);
+	peer = enet_host_connect((ENetHost *)client, &address, MULTIPLEX_MAX_CHANNELS + 1, 0);
 	if (peer == NULL)
 	{
 		fprintf(stderr,

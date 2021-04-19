@@ -12,17 +12,17 @@ MultiplexServer *c_make_server()
 	return new MultiplexServer;
 }
 
-Packing *c_make_packer()
+Packer *c_make_packer()
 {
-	return new Packing;
+	return new Packer;
 }
 
-PackingField *c_unpack_fields(Packing *packer, char *source, size_t size)
+PackingField *c_unpack_fields(Packer *packer, char *source, size_t size)
 {
 	return packer->unpack_fields(source, size);
 }
 
-size_t c_pack_field(Packing *packer, uint8_t fieldNum, char *fieldData, size_t fieldSize, size_t currentPos, char *destChar)
+size_t c_pack_field(Packer *packer, uint8_t fieldNum, char *fieldData, size_t fieldSize, size_t currentPos, char *destChar)
 {
 	return packer->pack_field(fieldNum, fieldData, fieldSize, currentPos, destChar);
 }
@@ -33,7 +33,7 @@ int c_destroy(MultiplexBase *multiplex)
 	return 0;
 }
 
-int c_destroy_packer(Packing *packer)
+int c_destroy_packer(Packer *packer)
 {
 	delete packer;
 	return 0;
