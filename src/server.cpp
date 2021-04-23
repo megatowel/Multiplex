@@ -42,7 +42,6 @@ int MultiplexServer::disconnect(unsigned int timeout)
 int MultiplexServer::setup(const char *host_name, int port)
 {
 	ENetAddress address;
-	cout << "Multiplex Server is being created" << endl;
 	address.host = ENET_HOST_ANY;
 	enet_address_set_host(&address, host_name);
 
@@ -177,8 +176,8 @@ MultiplexEvent MultiplexServer::process_event(unsigned int timeout)
 		case ENET_EVENT_TYPE_CONNECT:
 		{
 			printf("A new client connected from %x:%u.\n",
-				event.peer->address.host,
-				event.peer->address.port);
+				   event.peer->address.host,
+				   event.peer->address.port);
 
 			// Store any relevant client information here.
 			user = new MultiplexUser;
@@ -201,8 +200,6 @@ MultiplexEvent MultiplexServer::process_event(unsigned int timeout)
 			}
 			user->userId = userId;
 			user->peer = (void *)event.peer;
-
-			cout << user->userId << endl;
 
 			users.insert(std::pair<unsigned long long, std::unique_ptr<MultiplexUser>>(userId, user));
 			ENetPacket *packet = (ENetPacket *)create_system_packet(MultiplexSystemResponses::UserSetup, user->userId, 0, 1);
@@ -312,9 +309,7 @@ MultiplexEvent MultiplexServer::process_event(unsigned int timeout)
 		}
 		case ENET_EVENT_TYPE_DISCONNECT:
 		{
-			cout << "Disconnecting... State: " << event.peer->state << endl;
 			user = (MultiplexUser *)event.peer->data;
-			cout << "User ID: " << user->userId << " has disconnected." << endl;
 			friendlyEvent.eventType = MultiplexEventType::Disconnected;
 			friendlyEvent.fromUserId = user->userId;
 			for (int i = 0; i < MULTIPLEX_MAX_CHANNELS; i++)

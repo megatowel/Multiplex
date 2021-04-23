@@ -36,6 +36,8 @@ namespace Megatowel
 			char *sendBuffer = NULL;
 			std::map<unsigned long long, std::unique_ptr<MultiplexUser>> users;
 			std::map<unsigned long long, MultiplexInstance> instances;
+		private:
+			MULTIPLEX_EXPORT MultiplexServer(const MultiplexServer &);
 		};
 	}
 }

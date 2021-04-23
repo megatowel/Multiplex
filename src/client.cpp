@@ -55,7 +55,6 @@ int MultiplexClient::disconnect(unsigned int timeout)
 int MultiplexClient::setup(const char *host_name, int port)
 {
 	// Set up a client.
-	cout << "Multiplex Client is being created" << endl;
 	client = enet_host_create(NULL,						  //create a client host
 							  1,						  // connections limit
 							  MULTIPLEX_MAX_CHANNELS + 1, // Refer to the definition of MULTIPLEX_MAX_CHANNELS.
@@ -73,7 +72,6 @@ int MultiplexClient::setup(const char *host_name, int port)
 	enet_address_set_host(&address, host_name);
 	address.port = port;
 	// Initiate the connection, allocating the two channels 0 and MULTIPLEX_MAX_CHANNELS.
-	cout << "Connecting to Multiplex server... Host: " << host_name << " Port: " << port << endl;
 	peer = enet_host_connect((ENetHost *)client, &address, MULTIPLEX_MAX_CHANNELS + 1, 0);
 	if (peer == NULL)
 	{
@@ -242,7 +240,6 @@ MultiplexEvent MultiplexClient::process_event(unsigned int timeout)
 		case ENET_EVENT_TYPE_DISCONNECT:
 		{
 			enet_peer_reset((ENetPeer *)peer);
-			cout << "Disconnected from server. State:" << event.peer->state << endl;
 			friendlyEvent.eventType = MultiplexEventType::Disconnected;
 			break;
 		}

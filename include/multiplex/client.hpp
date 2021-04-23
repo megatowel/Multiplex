@@ -37,6 +37,8 @@ namespace Megatowel
 			unsigned long long *userIdsBuffer = NULL;
 			std::vector<unsigned long long> usersByChannel[MULTIPLEX_MAX_CHANNELS];
 			unsigned long long instanceByChannel[MULTIPLEX_MAX_CHANNELS];
+		private:
+			MULTIPLEX_EXPORT MultiplexClient(const MultiplexClient &);
 		};
 	}
 }

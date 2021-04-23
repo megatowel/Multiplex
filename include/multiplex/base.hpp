@@ -27,6 +27,9 @@ namespace Megatowel
 		protected:
 			void *client = NULL;
 			void *peer = NULL;
+
+		private:
+			MULTIPLEX_EXPORT MultiplexBase(const MultiplexBase &);
 		};
 	}
 }
