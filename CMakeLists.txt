@@ -11,14 +11,14 @@ ELSE ()
 	add_library (multiplex SHARED)
 ENDIF ()
 
-set_property (TARGET multiplex PROPERTY CXX_STANDARD 20)
+set_property (TARGET multiplex PROPERTY CXX_STANDARD 17)
 
 add_subdirectory(src)
 add_subdirectory(include/multiplex)
 
 add_subdirectory(lib/enet)
-target_include_directories (multiplex PRIVATE enet)
 target_link_libraries (multiplex PRIVATE enet)
+target_include_directories (multiplex PRIVATE lib/enet/include)
 
 # Link WinSock2 if on Windows (for ENet)
 IF (WIN32)

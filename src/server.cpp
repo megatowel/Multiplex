@@ -196,7 +196,7 @@ MultiplexEvent MultiplexServer::process_event(unsigned int timeout)
 
 				user->peer = (void *)event.peer;
 
-				users.insert(std::pair<unsigned long long, std::unique_ptr<MultiplexUser>>(userId, user));
+				users.insert(std::pair<unsigned long long, std::unique_ptr<MultiplexUser>>(user->userId, user));
 				ENetPacket *packet = (ENetPacket *)create_system_packet(MultiplexSystemResponses::UserSetup, user->userId, 0, 1);
 				enet_peer_send(event.peer, 0, packet);
 				break;
