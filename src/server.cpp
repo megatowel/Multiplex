@@ -168,161 +168,154 @@ MultiplexEvent MultiplexServer::process_event(unsigned int timeout)
 	MultiplexUser *user;
 	MultiplexEvent friendlyEvent;
 
-	// Wait up to 5000 milliseconds for an event.
+	// Wait for an event.
 	if (enet_host_service((ENetHost *)client, &event, timeout) > 0)
 	{
 		switch (event.type)
 		{
-		case ENET_EVENT_TYPE_CONNECT:
-		{
-			printf("A new client connected from %x:%u.\n",
-				   event.peer->address.host,
-				   event.peer->address.port);
-
-			// Store any relevant client information here.
-			user = new MultiplexUser;
-
-			if (user == NULL)
+			case ENET_EVENT_TYPE_CONNECT:
 			{
-				exit(2);
+				printf("A new client connected from %x:%u.\n",
+					event.peer->address.host,
+					event.peer->address.port);
+
+				// Store any relevant client information here.
+				user = new MultiplexUser();
+
+				if (user == NULL)
+				{
+					exit(2);
+				}
+
+				event.peer->data = user;
+
+				while (user->userId == 0)
+				{
+					user->userId = distr(eng);
+				}
+
+				user->peer = (void *)event.peer;
+
+				users.insert(std::pair<unsigned long long, std::unique_ptr<MultiplexUser>>(userId, user));
+				ENetPacket *packet = (ENetPacket *)create_system_packet(MultiplexSystemResponses::UserSetup, user->userId, 0, 1);
+				enet_peer_send(event.peer, 0, packet);
+				break;
 			}
-
-			event.peer->data = user;
-
-			for (int i = 0; i < MULTIPLEX_MAX_CHANNELS; i++)
+			case ENET_EVENT_TYPE_RECEIVE:
 			{
-				user->channelInstances[i] = 0;
-			}
-			unsigned long long userId = 0;
-			while (userId == 0)
-			{
-				userId = distr(eng);
-			}
-			user->userId = userId;
-			user->peer = (void *)event.peer;
+				user = (MultiplexUser *)event.peer->data;
+				friendlyEvent.fromUserId = user->userId;
 
-			users.insert(std::pair<unsigned long long, std::unique_ptr<MultiplexUser>>(userId, user));
-			ENetPacket *packet = (ENetPacket *)create_system_packet(MultiplexSystemResponses::UserSetup, user->userId, 0, 1);
-			enet_peer_send(event.peer, 0, packet);
-			break;
-		}
-		case ENET_EVENT_TYPE_RECEIVE:
-		{
-			user = (MultiplexUser *)event.peer->data;
-			friendlyEvent.fromUserId = user->userId;
-
-			// We can't unpack anything less than 3 bytes.
-			if (event.packet->dataLength < 3)
-			{
-				friendlyEvent.eventType = MultiplexEventType::Error;
-				friendlyEvent.Error = MultiplexErrors::BadPacking;
-			}
-
-			PackingField *data = packer.unpack_fields((char *)event.packet->data, event.packet->dataLength);
-
-			if (event.channelID == 0)
-			{
-				if (data[PACK_FIELD_ACTION].size == 0)
+				// We can't unpack anything less than 3 bytes.
+				if (event.packet->dataLength < 3)
 				{
 					friendlyEvent.eventType = MultiplexEventType::Error;
-					friendlyEvent.Error = MultiplexErrors::MissingActionArgs;
-					break;
+					friendlyEvent.Error = MultiplexErrors::BadPacking;
 				}
-				MultiplexActions action = (MultiplexActions)(*((int *)(data[PACK_FIELD_ACTION].data)));
-				switch (action)
+
+				PackingField *data = packer.unpack_fields((char *)event.packet->data, event.packet->dataLength);
+
+				if (event.channelID == 0)
 				{
-				case MultiplexActions::EditChannel:
-				{
-					if (data[PACK_FIELD_CHANNELID].size == 0 || data[PACK_FIELD_INSTANCEID].size == 0)
+					if (data[PACK_FIELD_ACTION].size == 0)
 					{
 						friendlyEvent.eventType = MultiplexEventType::Error;
 						friendlyEvent.Error = MultiplexErrors::MissingActionArgs;
 						break;
 					}
-					unsigned int editingChannel = *((unsigned int *)(data[PACK_FIELD_CHANNELID].data));
-					unsigned long long instanceId = *((unsigned long long *)(data[PACK_FIELD_INSTANCEID].data));
+					MultiplexActions action = (MultiplexActions)(*((int *)(data[PACK_FIELD_ACTION].data)));
+					switch (action)
+					{
+					case MultiplexActions::EditChannel:
+					{
+						if (data[PACK_FIELD_CHANNELID].size == 0 || data[PACK_FIELD_INSTANCEID].size == 0)
+						{
+							friendlyEvent.eventType = MultiplexEventType::Error;
+							friendlyEvent.Error = MultiplexErrors::MissingActionArgs;
+							break;
+						}
+						unsigned int editingChannel = *((unsigned int *)(data[PACK_FIELD_CHANNELID].data));
+						unsigned long long instanceId = *((unsigned long long *)(data[PACK_FIELD_INSTANCEID].data));
 
-					friendlyEvent.eventType = MultiplexEventType::InstanceUserUpdate;
-					friendlyEvent.channelId = editingChannel;
-					friendlyEvent.instanceId = instanceId;
+						friendlyEvent.eventType = MultiplexEventType::InstanceUserUpdate;
+						friendlyEvent.channelId = editingChannel;
+						friendlyEvent.instanceId = instanceId;
 
-					break;
+						break;
+					}
+					case MultiplexActions::ServerMessage:
+					{
+						friendlyEvent.eventType = MultiplexEventType::ServerCustom;
+
+						if (data[PACK_FIELD_DATA].size)
+						{
+							friendlyEvent.data = data[PACK_FIELD_DATA].data;
+							friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].size;
+						}
+						if (data[PACK_FIELD_CHANNELID].size)
+						{
+							friendlyEvent.channelId = *((unsigned int *)(data[PACK_FIELD_CHANNELID].data));
+						}
+						if (data[PACK_FIELD_INSTANCEID].size)
+						{
+							friendlyEvent.instanceId = *((unsigned long long *)(data[PACK_FIELD_INSTANCEID].data));
+						}
+
+						break;
+					}
+					}
 				}
-				case MultiplexActions::ServerMessage:
+				else
 				{
-					friendlyEvent.eventType = MultiplexEventType::ServerCustom;
+					unsigned long long currentInstanceId = user->channelInstances[event.channelID - 1];
 
-					if (data[PACK_FIELD_DATA].size)
+					if (currentInstanceId == 0 || data[PACK_FIELD_DATA].size == 0 || data[PACK_FIELD_INFO].size == 0)
 					{
-						friendlyEvent.data = data[PACK_FIELD_DATA].data;
-						friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].size;
-					}
-					if (data[PACK_FIELD_CHANNELID].size)
-					{
-						friendlyEvent.channelId = *((unsigned int *)(data[PACK_FIELD_CHANNELID].data));
-					}
-					if (data[PACK_FIELD_INSTANCEID].size)
-					{
-						friendlyEvent.instanceId = *((unsigned long long *)(data[PACK_FIELD_INSTANCEID].data));
+						friendlyEvent.Error = MultiplexErrors::FailedRelay;
+
+						// Clean up the packet now that we're done using it.
+						enet_packet_destroy(event.packet);
+						
+						break;
 					}
 
-					break;
+					friendlyEvent.eventType = MultiplexEventType::UserMessage;
+					friendlyEvent.fromUserId = user->userId;
+					friendlyEvent.channelId = (unsigned int)event.channelID;
+					friendlyEvent.instanceId = currentInstanceId;
+
+					// Copy from packet to class buffer arrays.
+					memcpy(dataBuffer, data[PACK_FIELD_DATA].data, data[PACK_FIELD_DATA].size);
+					memcpy(infoBuffer, data[PACK_FIELD_INFO].data, data[PACK_FIELD_INFO].size);
+
+					friendlyEvent.data = dataBuffer;
+					friendlyEvent.info = infoBuffer;
+
+					// Very important to state the size of the buffers.
+					friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].size;
+					friendlyEvent.infoSize = (unsigned int)data[PACK_FIELD_INFO].size;
 				}
-				}
+				// Clean up the packet now that we're done using it.
+				enet_packet_destroy(event.packet);
+				break;
 			}
-			else
+			case ENET_EVENT_TYPE_DISCONNECT:
 			{
-				unsigned long long currentInstanceId = user->channelInstances[event.channelID - 1];
-
-				if (currentInstanceId == 0 || data[PACK_FIELD_DATA].size == 0 || data[PACK_FIELD_INFO].size == 0)
-				{
-					friendlyEvent.Error = MultiplexErrors::FailedRelay;
-					// Clean up the packet now that we're done using it.
-					enet_packet_destroy(event.packet);
-					break;
-				}
-
-				friendlyEvent.eventType = MultiplexEventType::UserMessage;
+				user = (MultiplexUser *)event.peer->data;
+				friendlyEvent.eventType = MultiplexEventType::Disconnected;
 				friendlyEvent.fromUserId = user->userId;
-				friendlyEvent.channelId = (unsigned int)event.channelID;
-				friendlyEvent.instanceId = currentInstanceId;
+				for (int i = 0; i < MULTIPLEX_MAX_CHANNELS; i++)
+				{
+					bind_channel(user->userId, i + 1, 0);
+				}
 
-				// Copy from packet to class buffer arrays.
-				memcpy(dataBuffer, data[PACK_FIELD_DATA].data, data[PACK_FIELD_DATA].size);
-				memcpy(infoBuffer, data[PACK_FIELD_INFO].data, data[PACK_FIELD_INFO].size);
+				// Remove user's data from memory. Yes, this does delete the user struct.
+				// It's because of unique_ptr. Since we remove it from the users map, the user struct is deleted.
+				users.erase(user->userId);
 
-				friendlyEvent.data = dataBuffer;
-				friendlyEvent.info = infoBuffer;
-
-				// Very important to state the size of the buffers.
-				friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].size;
-				friendlyEvent.infoSize = (unsigned int)data[PACK_FIELD_INFO].size;
-
-				//ENetPacket* relayPacket = (ENetPacket*)create_system_packet(MultiplexSystemResponses::Message, user->userId, 0, event.packet->flags,
-				//	data[PACK_FIELD_DATA].data, data[PACK_FIELD_DATA].size, data[PACK_FIELD_INFO].data, data[PACK_FIELD_INFO].size);
-
-				//send(0, currentInstanceId, relayPacket);
+				// Reset the peer's client information.
+				event.peer->data = NULL;
 			}
-			// Clean up the packet now that we're done using it.
-			enet_packet_destroy(event.packet);
-			break;
-		}
-		case ENET_EVENT_TYPE_DISCONNECT:
-		{
-			user = (MultiplexUser *)event.peer->data;
-			friendlyEvent.eventType = MultiplexEventType::Disconnected;
-			friendlyEvent.fromUserId = user->userId;
-			for (int i = 0; i < MULTIPLEX_MAX_CHANNELS; i++)
-			{
-				bind_channel(user->userId, i + 1, 0);
-			}
-			// Remove user's data from memory.
-			users.erase(user->userId);
-			delete user;
-
-			// Reset the peer's client information.
-			event.peer->data = NULL;
-		}
 		}
 	}
 	else
