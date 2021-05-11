@@ -1,4 +1,4 @@
 
 [submodule "lib/enet"]
 	path = lib/enet
-	url = git@github.com:lsalzman/enet.git
+	url = ../../lsalzman/enet.git
