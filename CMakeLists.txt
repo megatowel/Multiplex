@@ -19,7 +19,7 @@ add_subdirectory(include/multiplex)
 add_subdirectory(lib/enet)
 target_link_libraries (multiplex PRIVATE enet)
 target_include_directories (multiplex PRIVATE lib/enet/include)
-set_property(TARGET multiplex PROPERTY OUTPUT_NAME libmultiplex)
+set_property(TARGET multiplex PROPERTY PREFIX "lib")
 
 # Link WinSock2 if on Windows (for ENet)
 IF (WIN32)
