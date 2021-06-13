@@ -3,21 +3,25 @@
 #ifndef MULTIPLEXPACKING_H
 #define MULTIPLEXPACKING_H
 
-#include <map>
-#include <iostream>
+#include <array>
 #include "multiplex.hpp"
+
+#define PACK_FIELD_TYPE 0
+#define PACK_FIELD_FROM_USERID 1
+#define PACK_FIELD_DATA 2
 
 namespace Megatowel
 {
 	namespace Multiplex
 	{
-		class Packer
+		struct PackingField
 		{
-		public:
-			MULTIPLEX_EXPORT Packer();
-			MULTIPLEX_EXPORT PackingField *unpack_fields(char *source, size_t size);
-			MULTIPLEX_EXPORT size_t pack_field(uint8_t fieldNum, char *fieldData, size_t fieldSize, size_t currentPos, char *destChar);
+			uint16_t size;
+			char *data;
 		};
+
+		MULTIPLEX_EXPORT std::array<PackingField, 256> unpack_fields(const char *source, const size_t size);
+		MULTIPLEX_EXPORT size_t pack_field(const uint8_t fieldNum, const char *fieldData, const size_t fieldSize, const size_t offset, char *buffer);
 	}
 }
 #endif

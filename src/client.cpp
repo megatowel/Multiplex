@@ -156,7 +156,7 @@ MultiplexEvent MultiplexClient::process_event(unsigned int timeout)
 		{
 		case ENET_EVENT_TYPE_CONNECT:
 		{
-			friendlyEvent.eventType = MultiplexEventType::Connected;
+			friendlyEvent.eventType = MultiplexResponse::Connected;
 			break;
 		}
 		case ENET_EVENT_TYPE_RECEIVE:
@@ -170,7 +170,7 @@ MultiplexEvent MultiplexClient::process_event(unsigned int timeout)
 			{
 			case MultiplexSystemResponses::Message:
 			{
-				friendlyEvent.eventType = MultiplexEventType::UserMessage;
+				friendlyEvent.eventType = MultiplexResponse::UserMessage;
 				friendlyEvent.channelId = (unsigned int)event.channelID;
 
 				friendlyEvent.data = data[PACK_FIELD_DATA].data;
@@ -184,12 +184,12 @@ MultiplexEvent MultiplexClient::process_event(unsigned int timeout)
 			}
 			case MultiplexSystemResponses::UserSetup:
 			{
-				friendlyEvent.eventType = MultiplexEventType::UserSetup;
+				friendlyEvent.eventType = MultiplexResponse::UserSetup;
 				break;
 			}
 			case MultiplexSystemResponses::InstanceConnected:
 			{
-				friendlyEvent.eventType = MultiplexEventType::InstanceConnected;
+				friendlyEvent.eventType = MultiplexResponse::InstanceConnected;
 				instanceByChannel[event.channelID] = *((unsigned long long *)(data[PACK_FIELD_INSTANCEID].data));
 
 				if (data[PACK_FIELD_INSTANCEID].size > 0)
@@ -218,7 +218,7 @@ MultiplexEvent MultiplexClient::process_event(unsigned int timeout)
 			}
 			case MultiplexSystemResponses::InstanceUserJoin:
 			{
-				friendlyEvent.eventType = MultiplexEventType::InstanceUserUpdate;
+				friendlyEvent.eventType = MultiplexResponse::InstanceUserUpdate;
 				friendlyEvent.channelId = (unsigned int)event.channelID;
 				friendlyEvent.instanceId = instanceByChannel[event.channelID];
 				usersByChannel[event.channelID].push_back(friendlyEvent.fromUserId);
@@ -226,7 +226,7 @@ MultiplexEvent MultiplexClient::process_event(unsigned int timeout)
 			}
 			case MultiplexSystemResponses::InstanceUserLeave:
 			{
-				friendlyEvent.eventType = MultiplexEventType::InstanceUserUpdate;
+				friendlyEvent.eventType = MultiplexResponse::InstanceUserUpdate;
 				friendlyEvent.channelId = (unsigned int)event.channelID;
 				friendlyEvent.instanceId = 0;
 				usersByChannel[event.channelID].erase(std::find(usersByChannel[event.channelID].begin(), usersByChannel[event.channelID].end(), friendlyEvent.fromUserId));
@@ -240,7 +240,7 @@ MultiplexEvent MultiplexClient::process_event(unsigned int timeout)
 		case ENET_EVENT_TYPE_DISCONNECT:
 		{
 			enet_peer_reset((ENetPeer *)peer);
-			friendlyEvent.eventType = MultiplexEventType::Disconnected;
+			friendlyEvent.eventType = MultiplexResponse::Disconnected;
 			break;
 		}
 		}
@@ -248,7 +248,7 @@ MultiplexEvent MultiplexClient::process_event(unsigned int timeout)
 	else
 	{
 		// Didn't get event.
-		friendlyEvent.eventType = MultiplexEventType::Error;
+		friendlyEvent.eventType = MultiplexResponse::Error;
 		friendlyEvent.Error = MultiplexErrors::NoEvent;
 	}
 	return friendlyEvent;
