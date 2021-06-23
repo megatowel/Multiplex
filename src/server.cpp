@@ -10,19 +10,42 @@ using namespace Megatowel::Multiplex;
 
 MultiplexServer::MultiplexServer()
 {
+	// TODO: actually figure this out
+	running = true;
+	processThread = std::thread([this]()
+								{
+									while (running)
+									{
+										try
+										{
+											process();
+										}
+										catch (std::exception e)
+										{
+											fprintf(stderr, e.what());
+										}
+									}
+								});
+	processThread.detach();
 }
 
 MultiplexServer::~MultiplexServer()
 {
-	if (host != nullptr)
-	{
-		enet_host_destroy((ENetHost *)host);
-	}
+	disconnect();
 }
 
-void MultiplexServer::disconnect(unsigned int timeout)
+void MultiplexServer::disconnect()
 {
-	MULTIPLEX_ERROR("Disconnecting is not yet supported.");
+	if (running)
+	{
+		send(nullptr, nullptr, nullptr, MultiplexResponse::Disconnect);
+		running = false;
+		processThread.join();
+		if (host != nullptr)
+		{
+			enet_host_destroy((ENetHost *)host);
+		}
+	}
 }
 
 void MultiplexServer::setup(const char *host_name, const unsigned short port)
@@ -38,22 +61,13 @@ void MultiplexServer::setup(const char *host_name, const unsigned short port)
 		MULTIPLEX_ERROR("An error occurred while trying to create an ENet client host.");
 }
 
-void MultiplexServer::send(const MultiplexUser *destination, const MultiplexInstance *instance, const MultiplexUser *sender, const MultiplexResponse type, const char *data = nullptr, const size_t dataSize = 0) const
+void MultiplexServer::send(const MultiplexUser *destination, const MultiplexInstance *instance, const MultiplexUser *sender, const MultiplexResponse type, const char *data, const size_t dataSize) const
 {
 	if (destination)
 	{
-		if (instance)
-		{
-			auto peer = (ENetPeer *)destination->peer;
-			auto packet = MultiplexPacket(type, sender, instance, data, dataSize).to_native_packet();
-			enet_peer_send(peer, destination->find_channel(instance), (ENetPacket *)packet); // no flags for now
-		}
-		else
-		{
-			auto peer = (ENetPeer *)destination->peer;
-			auto packet = MultiplexPacket(type, nullptr, nullptr, data, dataSize).to_native_packet();
-			enet_peer_send(peer, 0, (ENetPacket *)packet); // no flags for now
-		}
+		auto peer = (ENetPeer *)destination->peer;
+		auto packet = MultiplexPacket(type, sender, instance, data, dataSize).to_native_packet();
+		enet_peer_send(peer, destination->find_channel(instance), (ENetPacket *)packet); // no flags for now
 	}
 	else
 	{
@@ -81,13 +95,13 @@ void MultiplexServer::bind_channel(MultiplexUser *user, MultiplexInstance *insta
 		MultiplexInstance *previous = user->channels[channel - 1];
 		if (previous)
 		{
-			previous->send(user, nullptr, MultiplexResponse::RemoteInstanceLeave);
+			previous->send(nullptr, user, MultiplexResponse::RemoteInstanceLeave);
 			previous->users.erase(previous->users.begin() + user->get_user_index(previous));
 		}
 
 		instance->users.push_back(user);
 		user->channels[channel - 1] = instance;
-		user->send(instance, nullptr, MultiplexResponse::InstanceJoin, (char *)instance->users.size() - 1, sizeof(instance->users.size()));
+		user->send(instance, nullptr, MultiplexResponse::InstanceJoin, (char *)(instance->users.size() - 1), sizeof(instance->users.size()));
 	}
 	else
 	{
@@ -128,8 +142,7 @@ void MultiplexServer::process()
 			// We can't unpack anything less than 3 bytes.
 			if (event.packet->dataLength < 3)
 			{
-				//friendlyEvent.type = MultiplexResponse::Error;
-				//friendlyEvent.error = MultiplexError::BadPacking;
+				break;
 			}
 
 			auto data = unpack_fields((char *)event.packet->data, event.packet->dataLength);
@@ -138,8 +151,7 @@ void MultiplexServer::process()
 			{
 				if (data[PACK_FIELD_TYPE].size == 0)
 				{
-					//friendlyEvent.type = MultiplexResponse::Error;
-					//friendlyEvent.error = MultiplexError::MissingActionArgs;
+					// Ignore packet without opcode
 					break;
 				}
 
@@ -150,69 +162,24 @@ void MultiplexServer::process()
 				{
 					if (data[PACK_FIELD_DATA].size == 0)
 					{
-						//friendlyEvent.type = MultiplexResponse::Error;
-						//friendlyEvent.error = MultiplexError::MissingActionArgs;
+						// Ignore packet without parameter
 						break;
 					}
-					unsigned int editingChannel = *((unsigned int *)(data[PACK_FIELD_CHANNELID].data));
-					unsigned long long instanceId = *((unsigned long long *)(data[PACK_FIELD_INSTANCEID].data));
 
-					friendlyEvent.type = MultiplexResponse::InstanceModify;
-					friendlyEvent.channelId = editingChannel;
-					friendlyEvent.instanceId = instanceId;
+					// TODO: bind user to requested instance maybe
+					//user->bind()
 
 					break;
 				}
 				case MultiplexResponse::Message:
 				{
-					if (data[PACK_FIELD_DATA].size)
-					{
-						friendlyEvent.data = data[PACK_FIELD_DATA].data;
-						friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].size;
-					}
-					if (data[PACK_FIELD_CHANNELID].size)
-					{
-						friendlyEvent.channelId = *((unsigned int *)(data[PACK_FIELD_CHANNELID].data));
-					}
-					if (data[PACK_FIELD_INSTANCEID].size)
-					{
-						friendlyEvent.instanceId = *((unsigned long long *)(data[PACK_FIELD_INSTANCEID].data));
-					}
+					// TODO: message recieved callback
 
 					break;
 				}
 				}
 			}
-			else
-			{
-				unsigned long long currentInstanceId = user->channelInstances[event.channelID - 1];
 
-				if (currentInstanceId == 0 || data[PACK_FIELD_DATA].size == 0 || data[PACK_FIELD_INFO].size == 0)
-				{
-					friendlyEvent.error = MultiplexError::FailedRelay;
-
-					// Clean up the packet now that we're done using it.
-					enet_packet_destroy(event.packet);
-
-					break;
-				}
-
-				friendlyEvent.type = MultiplexResponse::UserMessage;
-				friendlyEvent.fromUserId = user->userId;
-				friendlyEvent.channelId = (unsigned int)event.channelID;
-				friendlyEvent.instanceId = currentInstanceId;
-
-				// Copy from packet to class buffer arrays.
-				memcpy(dataBuffer, data[PACK_FIELD_DATA].data, data[PACK_FIELD_DATA].size);
-				memcpy(infoBuffer, data[PACK_FIELD_INFO].data, data[PACK_FIELD_INFO].size);
-
-				friendlyEvent.data = dataBuffer;
-				friendlyEvent.info = infoBuffer;
-
-				// Very important to state the size of the buffers.
-				friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].size;
-				friendlyEvent.infoSize = (unsigned int)data[PACK_FIELD_INFO].size;
-			}
 			// Clean up the packet now that we're done using it.
 			enet_packet_destroy(event.packet);
 			break;
@@ -220,23 +187,13 @@ void MultiplexServer::process()
 		case ENET_EVENT_TYPE_DISCONNECT:
 		{
 			user = (MultiplexUser *)event.peer->data;
-			friendlyEvent.type = MultiplexResponse::Disconnected;
-			friendlyEvent.fromUserId = user->userId;
-			for (int i = 0; i < MULTIPLEX_MAX_CHANNELS; i++)
-			{
-				bind_channel(user->userId, i + 1, 0);
-			}
 
-			// Remove user's data from memory. Yes, this does delete the user struct.
-			// It's because of unique_ptr. Since we remove it from the users map, the user struct is deleted.
-			users.erase(user->userId);
+			// User is removed from users vector in destructor.
+			delete user;
 
 			// Reset the peer's client information.
 			event.peer->data = NULL;
 		}
 		}
-	}
-	else
-	{
 	}
 }

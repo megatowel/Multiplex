@@ -6,6 +6,8 @@
 #include "multiplex.hpp"
 #include "base.hpp"
 #include "packing.hpp"
+#include <thread>
+#include <atomic>
 
 namespace Megatowel
 {
@@ -17,16 +19,18 @@ namespace Megatowel
 			MultiplexServer();
 			~MultiplexServer();
 			void setup(const char *host_name, const unsigned short port) override;
-			void disconnect(unsigned int timeout) override;
+			void disconnect() override;
 			void send(const MultiplexUser *destination, const MultiplexInstance *instance, const MultiplexUser *sender, const MultiplexResponse type, const char *data = nullptr, const size_t dataSize = 0) const override;
 			void bind_channel(MultiplexUser *user, MultiplexInstance *instance, const unsigned int channel) override;
 
 		protected:
 			void *host, *peer;
+			std::atomic<bool> running = false;
+			std::thread processThread;
 			void process() override;
 
 		private:
-			MultiplexServer(const MultiplexServer &);
+			MultiplexServer(const MultiplexServer &) = delete;
 		};
 	}
 }

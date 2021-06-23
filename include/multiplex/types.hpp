@@ -57,7 +57,7 @@ namespace Megatowel
             std::vector<MultiplexUser *> users;
             std::vector<unsigned int> channels;
             MultiplexBase *owner;
-            MultiplexInstance(const MultiplexInstance &);
+            MultiplexInstance(const MultiplexInstance &) = delete;
         };
 
         /// @class MultiplexUser
@@ -69,8 +69,10 @@ namespace Megatowel
 
         public:
             MultiplexUser(MultiplexBase *owner);
+            ~MultiplexUser();
             unsigned int find_channel(const MultiplexInstance *instance) const;
             ptrdiff_t get_user_index(const MultiplexInstance *instance) const;
+            ptrdiff_t get_id() const;
             void send(const MultiplexInstance *instance, const MultiplexUser *sender, const MultiplexResponse type, const char *data = nullptr, const size_t dataSize = 0) const;
             void bind(MultiplexInstance *instance, const unsigned int channel);
             std::any meta;
@@ -79,7 +81,7 @@ namespace Megatowel
             MultiplexBase *owner;
             std::vector<MultiplexInstance *> channels;
             void *peer;
-            MultiplexUser(const MultiplexUser &);
+            MultiplexUser(const MultiplexUser &) = delete;
         };
 
         /// @struct MultiplexEvent

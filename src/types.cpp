@@ -24,7 +24,7 @@ MultiplexInstance::~MultiplexInstance()
     owner->instances.erase(owner->instances.begin() + this->get_id());
 }
 
-void MultiplexInstance::send(const MultiplexUser *destination, const MultiplexUser *sender, const MultiplexResponse type, const char *data = nullptr, const size_t dataSize = 0) const
+void MultiplexInstance::send(const MultiplexUser *destination, const MultiplexUser *sender, const MultiplexResponse type, const char *data, const size_t dataSize) const
 {
     owner->send(destination, this, sender, type, data, dataSize);
 }
@@ -60,17 +60,33 @@ unsigned int MultiplexInstance::find_channel(const MultiplexUser *user) const
         return this->channels[get_user_index(user)];
     }
     else
-        MULTIPLEX_ERROR("User parameter cannot be null.");
+        return 0;
 };
 
 // ----- MultiplexUser
 
 MultiplexUser::MultiplexUser(MultiplexBase *owner)
 {
+    if (!owner)
+    {
+        MULTIPLEX_ERROR("User can't be constructed without an owner.");
+    }
     owner = owner;
+    owner->users.push_back(this);
 }
 
-void MultiplexUser::send(const MultiplexInstance *instance, const MultiplexUser *sender, const MultiplexResponse type, const char *data = nullptr, const size_t dataSize = 0) const
+MultiplexUser::~MultiplexUser()
+{
+    // For each instance, tell them that the user is leaving, then erase it.
+    for (MultiplexInstance *instance : this->channels) {
+        ptrdiff_t index = this->get_user_index(instance);
+        instance->send(nullptr, this, MultiplexResponse::RemoteInstanceLeave);
+        instance->users.erase(instance->users.begin() + index);
+    }
+    owner->users.erase(owner->users.begin() + this->get_id());
+}
+
+void MultiplexUser::send(const MultiplexInstance *instance, const MultiplexUser *sender, const MultiplexResponse type, const char *data, const size_t dataSize) const
 {
     owner->send(this, instance, sender, type, data, dataSize);
 }
@@ -90,7 +106,7 @@ unsigned int MultiplexUser::find_channel(const MultiplexInstance *instance) cons
         return instance->channels[index];
     }
     else
-        MULTIPLEX_ERROR("Instance parameter cannot be null.");
+        return 0;
 };
 
 ptrdiff_t MultiplexUser::get_user_index(const MultiplexInstance *instance) const
@@ -104,6 +120,12 @@ ptrdiff_t MultiplexUser::get_user_index(const MultiplexInstance *instance) const
     }
     else
         MULTIPLEX_ERROR("Instance parameter cannot be null.");
+};
+
+ptrdiff_t MultiplexUser::get_id() const
+{
+    auto index = std::find(owner->users.begin(), owner->users.end(), this) - owner->users.begin();
+    return index;
 };
 
 // ----- MultiplexPacket

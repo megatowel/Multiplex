@@ -39,7 +39,7 @@ namespace Megatowel
 			unsigned long long instanceByChannel[MULTIPLEX_MAX_CHANNELS];
 
 		private:
-			MULTIPLEX_EXPORT MultiplexClient(const MultiplexClient &);
+			MULTIPLEX_EXPORT MultiplexClient(const MultiplexClient &) = delete;
 		};
 	}
 }

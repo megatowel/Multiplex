@@ -17,7 +17,7 @@ namespace Megatowel
 		public:
 			MultiplexBase();
 			virtual void setup(const char *hostname, const unsigned short port) = 0;
-			virtual void disconnect(unsigned int timeout) = 0;
+			virtual void disconnect() = 0;
 			virtual void send(const MultiplexUser *destination, const MultiplexInstance *instance, const MultiplexUser *sender, const MultiplexResponse type, const char *data = nullptr, const size_t dataSize = 0) const = 0;
 			virtual void bind_channel(MultiplexUser *user, MultiplexInstance *instance, const unsigned int channel) = 0;
 			std::vector<MultiplexUser *> users;
@@ -28,7 +28,7 @@ namespace Megatowel
 			virtual void process() = 0;
 
 		private:
-			MultiplexBase(const MultiplexBase &);
+			MultiplexBase(const MultiplexBase &) = delete;
 		};
 	}
 }
