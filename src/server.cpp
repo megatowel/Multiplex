@@ -43,7 +43,7 @@ void MultiplexServer::disconnect()
 		processThread.join();
 		if (host != nullptr)
 		{
-			enet_host_destroy((ENetHost *)host);
+			enet_host_destroy((ENetHost *)host.load());
 		}
 	}
 }
@@ -58,7 +58,7 @@ void MultiplexServer::setup(const char *host_name, const unsigned short port)
 							0,
 							0);
 	if (!host)
-		MULTIPLEX_ERROR("An error occurred while trying to create an ENet client host.");
+		MULTIPLEX_ERROR("An error occurred while trying to create an ENet server host.");
 }
 
 void MultiplexServer::send(const MultiplexUser *destination, const MultiplexInstance *instance, const MultiplexUser *sender, const MultiplexResponse type, const char *data, const size_t dataSize) const
@@ -83,7 +83,7 @@ void MultiplexServer::send(const MultiplexUser *destination, const MultiplexInst
 		else
 		{
 			auto packet = MultiplexPacket(type, nullptr, nullptr, data, dataSize).to_native_packet();
-			enet_host_broadcast((ENetHost *)host, 0, (ENetPacket *)packet);
+			enet_host_broadcast((ENetHost *)host.load(), 0, (ENetPacket *)packet);
 		}
 	}
 }
@@ -115,7 +115,7 @@ void MultiplexServer::process()
 	MultiplexUser *user;
 
 	// Wait for an event.
-	if (enet_host_service((ENetHost *)client, &event, 5000) > 0)
+	if (enet_host_service((ENetHost *)host.load(), &event, 5000) > 0)
 	{
 		switch (event.type)
 		{
@@ -155,7 +155,7 @@ void MultiplexServer::process()
 					break;
 				}
 
-				MultiplexResponse action = (MultiplexResponse)(*((int *)(data[PACK_FIELD_TYPE].data)));
+				MultiplexResponse action = (MultiplexResponse)(*((int *)(event.packet->data)));
 				switch (action)
 				{
 				case MultiplexResponse::InstanceModify:

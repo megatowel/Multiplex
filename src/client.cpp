@@ -13,7 +13,6 @@ MultiplexClient::MultiplexClient()
 	sendBuffer = new char[MULTIPLEX_MAX_DATA_SIZE];
 	infoBuffer = new char[MULTIPLEX_MAX_DATA_SIZE];
 	userIdsBuffer = new unsigned long long[128];
-	packer = Packer();
 	for (auto i = 0; i < MULTIPLEX_MAX_CHANNELS; i++)
 	{
 		instanceByChannel[i] = 0;
@@ -28,7 +27,7 @@ MultiplexClient::~MultiplexClient()
 	delete[] userIdsBuffer;
 	if (client != NULL)
 	{
-		enet_host_destroy((ENetHost *)client);
+		enet_host_destroy((ENetHost *)host.load());
 	}
 }
 
@@ -37,7 +36,7 @@ int MultiplexClient::disconnect(unsigned int timeout)
 	ENetEvent event;
 	enet_peer_disconnect((ENetPeer *)peer, 0);
 	// Wait up to 5 seconds for the connection attempt to succeed.
-	if (enet_host_service((ENetHost *)client, &event, timeout) > 0 &&
+	if (enet_host_service((ENetHost *)host, &event, timeout) > 0 &&
 		event.type == ENET_EVENT_TYPE_DISCONNECT)
 	{
 		return 0;
@@ -55,12 +54,12 @@ int MultiplexClient::disconnect(unsigned int timeout)
 int MultiplexClient::setup(const char *host_name, int port)
 {
 	// Set up a client.
-	client = enet_host_create(NULL,						  //create a client host
+	host = enet_host_create(NULL,						  //create a client host
 							  1,						  // connections limit
 							  MULTIPLEX_MAX_CHANNELS + 1, // Refer to the definition of MULTIPLEX_MAX_CHANNELS.
 							  0,						  // assume any amount of incoming bandwidth
 							  0);						  // assume any amount of outgoing bandwidth
-	if (client == NULL)
+	if (host == NULL)
 	{
 		fprintf(stderr,
 				"An error occurred while trying to create an ENet client host.\n");
@@ -72,7 +71,7 @@ int MultiplexClient::setup(const char *host_name, int port)
 	enet_address_set_host(&address, host_name);
 	address.port = port;
 	// Initiate the connection, allocating the two channels 0 and MULTIPLEX_MAX_CHANNELS.
-	peer = enet_host_connect((ENetHost *)client, &address, MULTIPLEX_MAX_CHANNELS + 1, 0);
+	peer = enet_host_connect((ENetHost *)host.load(), &address, MULTIPLEX_MAX_CHANNELS + 1, 0);
 	if (peer == NULL)
 	{
 		fprintf(stderr,
@@ -80,7 +79,7 @@ int MultiplexClient::setup(const char *host_name, int port)
 		return -1;
 	}
 	// Wait up to 5 seconds for the connection attempt to succeed.
-	if (enet_host_service((ENetHost *)client, &event, 5000) > 0 &&
+	if (enet_host_service((ENetHost *)host.load(), &event, 5000) > 0 &&
 		event.type == ENET_EVENT_TYPE_CONNECT)
 	{
 		return 0;
@@ -115,7 +114,7 @@ int MultiplexClient::send(const char *data, unsigned int dataLength, const char 
 	enet_peer_send((ENetPeer *)peer, channel, packet);
 	if ((int)flags && MT_NO_FLUSH)
 	{
-		enet_host_flush((ENetHost *)client);
+		enet_host_flush((ENetHost *)host);
 	}
 	return 0;
 }
@@ -136,7 +135,7 @@ int MultiplexClient::bind_channel(unsigned int channel, unsigned long long insta
 											pos,
 											ENET_PACKET_FLAG_RELIABLE);
 	enet_peer_send((ENetPeer *)peer, 0, packet);
-	enet_host_flush((ENetHost *)client);
+	enet_host_flush((ENetHost *)host);
 	return 0;
 }
 
@@ -150,7 +149,7 @@ MultiplexEvent MultiplexClient::process_event(unsigned int timeout)
 	ENetEvent event;
 	MultiplexEvent friendlyEvent;
 	// Wait for an event.
-	if (enet_host_service((ENetHost *)client, &event, timeout) > 0)
+	if (enet_host_service((ENetHost *)host, &event, timeout) > 0)
 	{
 		switch (event.type)
 		{
@@ -161,75 +160,36 @@ MultiplexEvent MultiplexClient::process_event(unsigned int timeout)
 		}
 		case ENET_EVENT_TYPE_RECEIVE:
 		{
-			PackingField *data = packer.unpack_fields((char *)event.packet->data, event.packet->dataLength);
+			// User IDs are probably going to be exclusive to MultiplexResponse::Message
+			// friendlyEvent.fromUserId = *((unsigned long long *)(data[PACK_FIELD_FROM_USERID].data));
+			
+			MultiplexResponse response = (MultiplexResponse)(*((int *)(event.packet->data)));
 
-			friendlyEvent.fromUserId = *((unsigned long long *)(data[PACK_FIELD_FROM_USERID].data));
-			// help me please
-			MultiplexSystemResponses response = (MultiplexSystemResponses)(*((int *)(data[PACK_FIELD_RESPONSE_TYPE].data)));
 			switch (response)
 			{
-			case MultiplexSystemResponses::Message:
+			case MultiplexResponse::Message:
 			{
-				friendlyEvent.eventType = MultiplexResponse::UserMessage;
-				friendlyEvent.channelId = (unsigned int)event.channelID;
-
-				friendlyEvent.data = data[PACK_FIELD_DATA].data;
-				friendlyEvent.info = data[PACK_FIELD_INFO].data;
-
-				// Very important to state the size of the buffers.
-				friendlyEvent.dataSize = (unsigned int)data[PACK_FIELD_DATA].size;
-				friendlyEvent.infoSize = (unsigned int)data[PACK_FIELD_INFO].size;
-
+				// Messages contain an user id and any data.
 				break;
 			}
-			case MultiplexSystemResponses::UserSetup:
+			case MultiplexResponse::RemoteInstanceJoin:
 			{
-				friendlyEvent.eventType = MultiplexResponse::UserSetup;
+				// Indicates we have joined an instance
 				break;
 			}
-			case MultiplexSystemResponses::InstanceConnected:
+			case MultiplexResponse::RemoteInstanceLeave:
 			{
-				friendlyEvent.eventType = MultiplexResponse::InstanceConnected;
-				instanceByChannel[event.channelID] = *((unsigned long long *)(data[PACK_FIELD_INSTANCEID].data));
-
-				if (data[PACK_FIELD_INSTANCEID].size > 0)
-				{
-					instanceByChannel[event.channelID] = *((unsigned long long *)(data[PACK_FIELD_INSTANCEID].data));
-				}
-				else
-				{
-					instanceByChannel[event.channelID] = 0;
-				}
-
-				// Since we may be switched to an instance, we need to refresh our users vector.
-				// Even when we get switched to instance 0, the instance id for no instance.
-				usersByChannel[event.channelID] = std::vector<unsigned long long>();
-
-				for (int i = 0; i < data[PACK_FIELD_USERIDS].size / 8; ++i)
-				{
-					userIdsBuffer[i] = ((unsigned long long *)(data[PACK_FIELD_USERIDS].data))[i];
-					usersByChannel[event.channelID].push_back(((unsigned long long *)(data[PACK_FIELD_USERIDS].data))[i]);
-				}
-				friendlyEvent.userIds = userIdsBuffer;
-				friendlyEvent.userIdsSize = (unsigned int)data[PACK_FIELD_USERIDS].size / 8;
-				friendlyEvent.channelId = (unsigned int)event.channelID;
-				friendlyEvent.instanceId = *((unsigned long long *)(data[PACK_FIELD_INSTANCEID].data));
+				// Indicates we have left an instance
 				break;
 			}
-			case MultiplexSystemResponses::InstanceUserJoin:
+			case MultiplexResponse::InstanceJoin:
 			{
-				friendlyEvent.eventType = MultiplexResponse::InstanceUserUpdate;
-				friendlyEvent.channelId = (unsigned int)event.channelID;
-				friendlyEvent.instanceId = instanceByChannel[event.channelID];
-				usersByChannel[event.channelID].push_back(friendlyEvent.fromUserId);
+				// Indicates an user joined our instance 
 				break;
 			}
-			case MultiplexSystemResponses::InstanceUserLeave:
+			case MultiplexResponse::InstanceLeave:
 			{
-				friendlyEvent.eventType = MultiplexResponse::InstanceUserUpdate;
-				friendlyEvent.channelId = (unsigned int)event.channelID;
-				friendlyEvent.instanceId = 0;
-				usersByChannel[event.channelID].erase(std::find(usersByChannel[event.channelID].begin(), usersByChannel[event.channelID].end(), friendlyEvent.fromUserId));
+				// Indicates an user left
 				break;
 			}
 			}
@@ -240,7 +200,6 @@ MultiplexEvent MultiplexClient::process_event(unsigned int timeout)
 		case ENET_EVENT_TYPE_DISCONNECT:
 		{
 			enet_peer_reset((ENetPeer *)peer);
-			friendlyEvent.eventType = MultiplexResponse::Disconnected;
 			break;
 		}
 		}
@@ -248,8 +207,6 @@ MultiplexEvent MultiplexClient::process_event(unsigned int timeout)
 	else
 	{
 		// Didn't get event.
-		friendlyEvent.eventType = MultiplexResponse::Error;
-		friendlyEvent.Error = MultiplexErrors::NoEvent;
 	}
 	return friendlyEvent;
 }

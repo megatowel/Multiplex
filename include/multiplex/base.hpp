@@ -24,7 +24,8 @@ namespace Megatowel
 			std::vector<MultiplexInstance *> instances;
 
 		protected:
-			void *client, *peer;
+			std::atomic<void*> host;
+			void *peer;
 			virtual void process() = 0;
 
 		private:

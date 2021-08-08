@@ -101,7 +101,8 @@ namespace Megatowel
         {
             MultiplexPacket(MultiplexResponse type, const MultiplexUser *sender, const MultiplexInstance *instance, const char *data = nullptr, const size_t size = 0);
             void *to_native_packet() const;
-            unsigned int flags;
+            MultiplexResponse responseType;
+            unsigned short id;
             char *data;
             size_t size;
         };

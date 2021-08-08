@@ -24,7 +24,6 @@ namespace Megatowel
 			void bind_channel(MultiplexUser *user, MultiplexInstance *instance, const unsigned int channel) override;
 
 		protected:
-			void *host, *peer;
 			std::atomic<bool> running = false;
 			std::thread processThread;
 			void process() override;

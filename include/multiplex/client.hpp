@@ -28,9 +28,6 @@ namespace Megatowel
 			MULTIPLEX_EXPORT MultiplexEvent process_event(unsigned int timeout) override;
 
 		protected:
-			void *client = NULL;
-			void *peer = NULL;
-			Packer packer;
 			char *dataBuffer = NULL;
 			char *infoBuffer = NULL;
 			char *sendBuffer = NULL;
