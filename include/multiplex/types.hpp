@@ -23,7 +23,7 @@ namespace Megatowel
 
         /// @enum MultiplexResponse
         /// @brief Describes the type of a received message.
-        enum class MultiplexResponse
+        enum class MultiplexResponse : char
         {
             Error = -1,
             Message,
@@ -42,6 +42,7 @@ namespace Megatowel
         {
             friend class MultiplexUser;
             friend class MultiplexServer;
+            friend class MultiplexClient;
 
         public:
             MultiplexInstance(MultiplexBase *owner);
@@ -66,6 +67,7 @@ namespace Megatowel
         {
             friend class MultiplexInstance;
             friend class MultiplexServer;
+            friend class MultiplexClient;
 
         public:
             MultiplexUser(MultiplexBase *owner);

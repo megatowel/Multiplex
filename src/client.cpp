@@ -3,55 +3,49 @@
 
 #include "multiplex/client.hpp"
 #include <enet/enet.h>
+#include "error.hpp"
 
 using namespace std;
 using namespace Megatowel::Multiplex;
 
 MultiplexClient::MultiplexClient()
 {
-	dataBuffer = new char[MULTIPLEX_MAX_DATA_SIZE];
-	sendBuffer = new char[MULTIPLEX_MAX_DATA_SIZE];
-	infoBuffer = new char[MULTIPLEX_MAX_DATA_SIZE];
-	userIdsBuffer = new unsigned long long[128];
-	for (auto i = 0; i < MULTIPLEX_MAX_CHANNELS; i++)
-	{
-		instanceByChannel[i] = 0;
-	}
+	// TODO: Thread setup for making callbacks work.
 }
 
 MultiplexClient::~MultiplexClient()
 {
-	delete[] dataBuffer;
-	delete[] sendBuffer;
-	delete[] infoBuffer;
-	delete[] userIdsBuffer;
-	if (client != NULL)
+	if (host != NULL)
 	{
 		enet_host_destroy((ENetHost *)host.load());
 	}
 }
 
-int MultiplexClient::disconnect(unsigned int timeout)
+void MultiplexClient::disconnect()
 {
+	// TODO: integrate into threads and provide an appropriate callback
+
 	ENetEvent event;
-	enet_peer_disconnect((ENetPeer *)peer, 0);
+	enet_peer_disconnect((ENetPeer *)peer.load(), 0);
 	// Wait up to 5 seconds for the connection attempt to succeed.
-	if (enet_host_service((ENetHost *)host, &event, timeout) > 0 &&
+	if (enet_host_service((ENetHost *)host.load(), &event, 5000) > 0 &&
 		event.type == ENET_EVENT_TYPE_DISCONNECT)
 	{
-		return 0;
+		return;
 	}
 	else
 	{
 		// Either the 5 seconds are up or server didn't respond
 		// Reset the peer in the event the 5 seconds
 		// had run out without any significant event.
-		enet_peer_reset((ENetPeer *)peer);
-		return -1;
+		enet_peer_reset((ENetPeer *)peer.load());
+
+		// TODO: Warn the user that we couldn't successfully disconnect
+		return;
 	}
 }
 
-int MultiplexClient::setup(const char *host_name, int port)
+void MultiplexClient::setup(const char *host_name, unsigned short port)
 {
 	// Set up a client.
 	host = enet_host_create(NULL,						  //create a client host
@@ -59,12 +53,9 @@ int MultiplexClient::setup(const char *host_name, int port)
 							  MULTIPLEX_MAX_CHANNELS + 1, // Refer to the definition of MULTIPLEX_MAX_CHANNELS.
 							  0,						  // assume any amount of incoming bandwidth
 							  0);						  // assume any amount of outgoing bandwidth
-	if (host == NULL)
-	{
-		fprintf(stderr,
-				"An error occurred while trying to create an ENet client host.\n");
-		return EXIT_FAILURE;
-	}
+	if (!host)
+		MULTIPLEX_ERROR("An error occurred while trying to create an ENet client host.");
+	
 	ENetAddress address;
 	ENetEvent event;
 
@@ -73,89 +64,69 @@ int MultiplexClient::setup(const char *host_name, int port)
 	// Initiate the connection, allocating the two channels 0 and MULTIPLEX_MAX_CHANNELS.
 	peer = enet_host_connect((ENetHost *)host.load(), &address, MULTIPLEX_MAX_CHANNELS + 1, 0);
 	if (peer == NULL)
-	{
-		fprintf(stderr,
-				"No available peers for initiating an ENet connection.\n");
-		return -1;
-	}
+		MULTIPLEX_ERROR("No available peers for initiating an ENet connection.");
+	
 	// Wait up to 5 seconds for the connection attempt to succeed.
 	if (enet_host_service((ENetHost *)host.load(), &event, 5000) > 0 &&
 		event.type == ENET_EVENT_TYPE_CONNECT)
 	{
-		return 0;
+		return;
 	}
 	else
 	{
 		// Either the 5 seconds are up or a disconnect event was
 		// received. Reset the peer in the event the 5 seconds
 		// had run out without any significant event.
-		enet_peer_reset((ENetPeer *)peer);
-		return 1;
+		enet_peer_reset((ENetPeer *)peer.load());
+		MULTIPLEX_ERROR("Failed to make an ENet connection with the selected peer.");
 	}
 }
 
-int MultiplexClient::send(const char *data, unsigned int dataLength, const char *info, unsigned int infoLength, unsigned int channel, int flags)
+void MultiplexClient::send(const MultiplexUser *destination, const MultiplexInstance *instance, const MultiplexUser *sender, const MultiplexResponse type, const char *data, const size_t dataSize) const
 {
-	size_t pos = 0;
+	// Reusing most of the server's sending code. This may or may not work.
 
-	if (channel == 0)
+	if (destination)
 	{
-		MultiplexActions action = MultiplexActions::ServerMessage;
-		pos = packer.pack_field(PACK_FIELD_ACTION, (char *)(&action), sizeof(int), pos, sendBuffer);
+		auto peer = (ENetPeer *)destination->peer;
+		auto packet = MultiplexPacket(type, sender, instance, data, dataSize).to_native_packet();
+		enet_peer_send(peer, destination->find_channel(instance), (ENetPacket *)packet); // no flags for now
 	}
-	if (data != nullptr)
-		pos = packer.pack_field(PACK_FIELD_DATA, (char *)data, dataLength, pos, sendBuffer);
-	if (info != nullptr)
-		pos = packer.pack_field(PACK_FIELD_INFO, (char *)info, infoLength, pos, sendBuffer);
-	ENetPacket *packet = enet_packet_create(sendBuffer,
-											pos,
-											(int)flags && MT_SEND_RELIABLE);
-
-	enet_peer_send((ENetPeer *)peer, channel, packet);
-	if ((int)flags && MT_NO_FLUSH)
+	else
 	{
-		enet_host_flush((ENetHost *)host);
+		if (instance)
+		{
+			for (const auto user : instance->users)
+			{
+				auto peer = (ENetPeer *)user->peer;
+				auto packet = MultiplexPacket(type, user, instance, data, dataSize).to_native_packet();
+				enet_peer_send(peer, user->find_channel(instance), (ENetPacket *)packet); // no flags for now
+			}
+		}
+		else
+		{
+			auto packet = MultiplexPacket(type, nullptr, nullptr, data, dataSize).to_native_packet();
+			enet_peer_send((ENetPeer *)peer.load(), 0, (ENetPacket *)packet);
+		}
 	}
-	return 0;
 }
 
-int MultiplexClient::send(unsigned long long userId, unsigned long long instance, const void *packet)
-{
-	return -2;
+void MultiplexClient::bind_channel(MultiplexUser *user, MultiplexInstance *instance, const unsigned int channel) {
+	// TODO: Client channel binding
 }
 
-int MultiplexClient::bind_channel(unsigned int channel, unsigned long long instance)
-{
-	size_t pos = 0;
-	MultiplexActions action = MultiplexActions::EditChannel;
-	pos = packer.pack_field(PACK_FIELD_ACTION, (char *)(&action), sizeof(int), pos, sendBuffer);
-	pos = packer.pack_field(PACK_FIELD_CHANNELID, (char *)(&channel), sizeof(unsigned int), pos, sendBuffer);
-	pos = packer.pack_field(PACK_FIELD_INSTANCEID, (char *)(&instance), sizeof(unsigned long long), pos, sendBuffer);
-	ENetPacket *packet = enet_packet_create(sendBuffer,
-											pos,
-											ENET_PACKET_FLAG_RELIABLE);
-	enet_peer_send((ENetPeer *)peer, 0, packet);
-	enet_host_flush((ENetHost *)host);
-	return 0;
-}
-
-int MultiplexClient::bind_channel(unsigned long long userId, unsigned int channel, unsigned long long instance)
-{
-	return -2;
-}
-
-MultiplexEvent MultiplexClient::process_event(unsigned int timeout)
+void MultiplexClient::process()
 {
 	ENetEvent event;
 	MultiplexEvent friendlyEvent;
 	// Wait for an event.
-	if (enet_host_service((ENetHost *)host, &event, timeout) > 0)
+	if (enet_host_service((ENetHost *)host.load(), &event, 5000) > 0)
 	{
 		switch (event.type)
 		{
 		case ENET_EVENT_TYPE_CONNECT:
 		{
-			friendlyEvent.eventType = MultiplexResponse::Connected;
+			friendlyEvent.type = MultiplexResponse::Connect;
 			break;
 		}
 		case ENET_EVENT_TYPE_RECEIVE:
@@ -163,9 +134,9 @@ MultiplexEvent MultiplexClient::process_event(unsigned int timeout)
 			// User IDs are probably going to be exclusive to MultiplexResponse::Message
 			// friendlyEvent.fromUserId = *((unsigned long long *)(data[PACK_FIELD_FROM_USERID].data));
 			
-			MultiplexResponse response = (MultiplexResponse)(*((int *)(event.packet->data)));
+			friendlyEvent.type = (MultiplexResponse)(*((int *)(event.packet->data)));
 
-			switch (response)
+			switch (friendlyEvent.type)
 			{
 			case MultiplexResponse::Message:
 			{
@@ -199,7 +170,8 @@ MultiplexEvent MultiplexClient::process_event(unsigned int timeout)
 		}
 		case ENET_EVENT_TYPE_DISCONNECT:
 		{
-			enet_peer_reset((ENetPeer *)peer);
+			friendlyEvent.type = MultiplexResponse::Disconnect;
+			enet_peer_reset((ENetPeer *)peer.load());
 			break;
 		}
 		}
@@ -208,5 +180,4 @@ MultiplexEvent MultiplexClient::process_event(unsigned int timeout)
 	{
 		// Didn't get event.
 	}
-	return friendlyEvent;
 }

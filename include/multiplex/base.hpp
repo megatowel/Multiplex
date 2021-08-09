@@ -25,7 +25,7 @@ namespace Megatowel
 
 		protected:
 			std::atomic<void*> host;
-			void *peer;
+			std::atomic<void*> peer;
 			virtual void process() = 0;
 
 		private:

@@ -134,14 +134,19 @@ MultiplexPacket::MultiplexPacket(MultiplexResponse type, const MultiplexUser *se
 {
     size_t pos = 0;
 
-    pos = pack_field(PACK_FIELD_TYPE, (char *)type, sizeof(int), pos, this->data);
+    memcpy((void *)(this->data + pos), &type, sizeof(MultiplexResponse));
+    pos += sizeof(MultiplexResponse);
 
-    if (sender && instance)
-        pos = pack_field(PACK_FIELD_FROM_USERID, (char *)instance->get_user_index(sender), sizeof(size_t), pos, this->data);
+    if (type == MultiplexResponse::Message && sender && instance) {
+        memcpy((void *)(this->data + pos), (char *)instance->get_user_index(sender), sizeof(ptrdiff_t));
+        pos += sizeof(ptrdiff_t);
+    }
 
-    if (data)
-        pos = pack_field(PACK_FIELD_DATA, (char *)data, size, pos, this->data);
-
+    if (data) {
+        memcpy((void *)(this->data + pos), (char *)data, size);
+        pos += size;
+    }
+    
     this->size = pos;
 }
 
