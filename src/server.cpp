@@ -38,9 +38,25 @@ void MultiplexServer::disconnect()
 {
 	if (running)
 	{
-		send(nullptr, nullptr, nullptr, MultiplexResponse::Disconnect);
 		running = false;
 		processThread.join();
+
+		// TODO: integrate into threads and provide an appropriate callback
+		if (peer != nullptr)
+		{
+			ENetEvent event;
+			enet_peer_disconnect((ENetPeer *)peer.load(), 0);
+			// Wait up to 5 seconds for the connection attempt to succeed.
+			if (enet_host_service((ENetHost *)host.load(), &event, 5000) > 0 &&
+				event.type != ENET_EVENT_TYPE_DISCONNECT)
+			{
+				// Either the 5 seconds are up or server didn't respond
+				// Reset the peer in the event the 5 seconds
+				// had run out without any significant event.
+				enet_peer_reset((ENetPeer *)peer.load());
+			}
+		}
+
 		if (host != nullptr)
 		{
 			enet_host_destroy((ENetHost *)host.load());
@@ -48,7 +64,7 @@ void MultiplexServer::disconnect()
 	}
 }
 
-void MultiplexServer::setup(const char *host_name, const unsigned short port)
+void MultiplexServer::setup(const char *host_name, const unsigned short port, const std::function<void(MultiplexEvent)> callback)
 {
 	ENetAddress address{ENET_HOST_ANY, port};
 	enet_address_set_host(&address, host_name);
@@ -113,6 +129,7 @@ void MultiplexServer::process()
 {
 	ENetEvent event;
 	MultiplexUser *user;
+	MultiplexEvent friendlyEvent {};
 
 	// Wait for an event.
 	if (enet_host_service((ENetHost *)host.load(), &event, 5000) > 0)
@@ -133,40 +150,36 @@ void MultiplexServer::process()
 
 			users.push_back(user);
 			user->send(nullptr, nullptr, MultiplexResponse::Connect);
+
+			// A callback for a new user connecting to us.
+			friendlyEvent.sender = user;
+			friendlyEvent.type = MultiplexResponse::Connect;
+			callback(friendlyEvent);
 			break;
 		}
 		case ENET_EVENT_TYPE_RECEIVE:
 		{
 			user = (MultiplexUser *)event.peer->data;
+			friendlyEvent.sender = user;
 
-			// We can't unpack anything less than 3 bytes.
-			if (event.packet->dataLength < 3)
+			// We can't receive anything less than 1 byte. (not sure if ENet allows sending of 0 bytes)
+			if (event.packet->dataLength < 1)
 			{
 				break;
 			}
 
-			auto data = unpack_fields((char *)event.packet->data, event.packet->dataLength);
-
+			// Only recognizing packets from channel 0. instance stuff soon(tm) 
 			if (event.channelID == 0)
 			{
-				if (data[PACK_FIELD_TYPE].size == 0)
-				{
-					// Ignore packet without opcode
-					break;
-				}
+				friendlyEvent.type = (MultiplexResponse)(*((int *)(event.packet->data)));
 
-				MultiplexResponse action = (MultiplexResponse)(*((int *)(event.packet->data)));
-				switch (action)
+				// This will be used to populate friendlyEvent with data that's only included because of its type.
+				switch (friendlyEvent.type)
 				{
 				case MultiplexResponse::InstanceModify:
 				{
-					if (data[PACK_FIELD_DATA].size == 0)
-					{
-						// Ignore packet without parameter
-						break;
-					}
-
 					// TODO: bind user to requested instance maybe
+					// or actually leave it up to the user to implement.
 					//user->bind()
 
 					break;
@@ -178,6 +191,8 @@ void MultiplexServer::process()
 					break;
 				}
 				}
+
+				callback(friendlyEvent);
 			}
 
 			// Clean up the packet now that we're done using it.
@@ -187,6 +202,11 @@ void MultiplexServer::process()
 		case ENET_EVENT_TYPE_DISCONNECT:
 		{
 			user = (MultiplexUser *)event.peer->data;
+
+			// Do a callback and tell us this user is about to no longer exist.
+			friendlyEvent.sender = user;
+			friendlyEvent.type = MultiplexResponse::Disconnect;
+			callback(friendlyEvent);
 
 			// User is removed from users vector in destructor.
 			delete user;

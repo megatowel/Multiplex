@@ -10,43 +10,63 @@ using namespace Megatowel::Multiplex;
 
 MultiplexClient::MultiplexClient()
 {
-	// TODO: Thread setup for making callbacks work.
+	// TODO: actually figure this out
+	running = true;
+	processThread = std::thread([this]()
+								{
+									while (running)
+									{
+										try
+										{
+											process();
+										}
+										catch (std::exception e)
+										{
+											fprintf(stderr, e.what());
+										}
+									}
+								});
+	processThread.detach();
 }
 
 MultiplexClient::~MultiplexClient()
 {
-	if (host != NULL)
-	{
-		enet_host_destroy((ENetHost *)host.load());
-	}
+	disconnect();
 }
 
 void MultiplexClient::disconnect()
 {
-	// TODO: integrate into threads and provide an appropriate callback
-
-	ENetEvent event;
-	enet_peer_disconnect((ENetPeer *)peer.load(), 0);
-	// Wait up to 5 seconds for the connection attempt to succeed.
-	if (enet_host_service((ENetHost *)host.load(), &event, 5000) > 0 &&
-		event.type == ENET_EVENT_TYPE_DISCONNECT)
+	if (running)
 	{
-		return;
-	}
-	else
-	{
-		// Either the 5 seconds are up or server didn't respond
-		// Reset the peer in the event the 5 seconds
-		// had run out without any significant event.
-		enet_peer_reset((ENetPeer *)peer.load());
+		running = false;
+		processThread.join();
 
-		// TODO: Warn the user that we couldn't successfully disconnect
-		return;
+		// TODO: integrate into threads and provide an appropriate callback
+		if (peer != nullptr)
+		{
+			ENetEvent event;
+			enet_peer_disconnect((ENetPeer *)peer.load(), 0);
+			// Wait up to 5 seconds for the connection attempt to succeed.
+			if (enet_host_service((ENetHost *)host.load(), &event, 5000) > 0 &&
+				event.type != ENET_EVENT_TYPE_DISCONNECT)
+			{
+				// Either the 5 seconds are up or server didn't respond
+				// Reset the peer in the event the 5 seconds
+				// had run out without any significant event.
+				enet_peer_reset((ENetPeer *)peer.load());
+			}
+		}
+
+		if (host != nullptr)
+		{
+			enet_host_destroy((ENetHost *)host.load());
+		}
 	}
 }
 
-void MultiplexClient::setup(const char *host_name, unsigned short port)
+void MultiplexClient::setup(const char *host_name, unsigned short port, const std::function<void(MultiplexEvent)> callback)
 {
+	this->callback = callback;
 	// Set up a client.
 	host = enet_host_create(NULL,						  //create a client host
 							  1,						  // connections limit
@@ -118,7 +138,8 @@ void MultiplexClient::bind_channel(MultiplexUser *user, MultiplexInstance *insta
 void MultiplexClient::process()
 {
 	ENetEvent event;
-	MultiplexEvent friendlyEvent;
+	MultiplexEvent friendlyEvent {};
+
 	// Wait for an event.
 	if (enet_host_service((ENetHost *)host.load(), &event, 5000) > 0)
 	{
@@ -175,9 +196,7 @@ void MultiplexClient::process()
 			break;
 		}
 		}
-	}
-	else
-	{
-		// Didn't get event.
+
+		callback(friendlyEvent);
 	}
 }

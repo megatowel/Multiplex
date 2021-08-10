@@ -4,6 +4,7 @@
 #define MULTIPLEXBASE_H
 
 #include "multiplex.hpp"
+#include <functional>
 
 namespace Megatowel
 {
@@ -16,7 +17,7 @@ namespace Megatowel
 		{
 		public:
 			MultiplexBase();
-			virtual void setup(const char *hostname, const unsigned short port) = 0;
+			virtual void setup(const char *hostname, const unsigned short port, const std::function<void(MultiplexEvent)> callback) = 0;
 			virtual void disconnect() = 0;
 			virtual void send(const MultiplexUser *destination, const MultiplexInstance *instance, const MultiplexUser *sender, const MultiplexResponse type, const char *data = nullptr, const size_t dataSize = 0) const = 0;
 			virtual void bind_channel(MultiplexUser *user, MultiplexInstance *instance, const unsigned int channel) = 0;
@@ -26,6 +27,7 @@ namespace Megatowel
 		protected:
 			std::atomic<void*> host;
 			std::atomic<void*> peer;
+			std::function<void(MultiplexEvent)> callback;
 			virtual void process() = 0;
 
 		private:

@@ -18,7 +18,7 @@ namespace Megatowel
 		public:
 			MultiplexServer();
 			~MultiplexServer();
-			void setup(const char *host_name, const unsigned short port) override;
+			void setup(const char *host_name, const unsigned short port, const std::function<void(MultiplexEvent)> callback) override;
 			void disconnect() override;
 			void send(const MultiplexUser *destination, const MultiplexInstance *instance, const MultiplexUser *sender, const MultiplexResponse type, const char *data = nullptr, const size_t dataSize = 0) const override;
 			void bind_channel(MultiplexUser *user, MultiplexInstance *instance, const unsigned int channel) override;
