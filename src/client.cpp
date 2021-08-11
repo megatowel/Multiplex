@@ -10,23 +10,6 @@ using namespace Megatowel::Multiplex;
 
 MultiplexClient::MultiplexClient()
 {
-	// TODO: actually figure this out
-	running = true;
-	processThread = std::thread([this]()
-								{
-									while (running)
-									{
-										try
-										{
-											process();
-										}
-										catch (std::exception e)
-										{
-											fprintf(stderr, e.what());
-										}
-									}
-								});
-	processThread.detach();
 }
 
 MultiplexClient::~MultiplexClient()
@@ -90,7 +73,27 @@ void MultiplexClient::setup(const char *host_name, unsigned short port, const st
 	if (enet_host_service((ENetHost *)host.load(), &event, 5000) > 0 &&
 		event.type == ENET_EVENT_TYPE_CONNECT)
 	{
-		return;
+		MultiplexEvent friendlyEvent {};
+		friendlyEvent.type = MultiplexResponse::Connect;
+		callback(friendlyEvent);
+
+		// TODO: actually figure this out
+		running = true;
+		processThread = std::thread([this]()
+									{
+										while (running)
+										{
+											try
+											{
+												process();
+											}
+											catch (std::exception e)
+											{
+												fprintf(stderr, e.what());
+											}
+										}
+									});
+		processThread.detach();
 	}
 	else
 	{
@@ -141,15 +144,10 @@ void MultiplexClient::process()
 	MultiplexEvent friendlyEvent {};
 
 	// Wait for an event.
-	if (enet_host_service((ENetHost *)host.load(), &event, 5000) > 0)
+	if (enet_host_service((ENetHost *)host.load(), &event, 10) > 0)
 	{
 		switch (event.type)
 		{
-		case ENET_EVENT_TYPE_CONNECT:
-		{
-			friendlyEvent.type = MultiplexResponse::Connect;
-			break;
-		}
 		case ENET_EVENT_TYPE_RECEIVE:
 		{
 			// User IDs are probably going to be exclusive to MultiplexResponse::Message
@@ -162,6 +160,11 @@ void MultiplexClient::process()
 			case MultiplexResponse::Message:
 			{
 				// Messages contain an user id and any data.
+
+				// TODO: finalize messages implementation
+				// More notes in MultiplexServer::process()
+				friendlyEvent.data = (char *)event.packet->data + 1;
+				friendlyEvent.size = event.packet->dataLength - 1;
 				break;
 			}
 			case MultiplexResponse::RemoteInstanceJoin:

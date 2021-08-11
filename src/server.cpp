@@ -10,23 +10,7 @@ using namespace Megatowel::Multiplex;
 
 MultiplexServer::MultiplexServer()
 {
-	// TODO: actually figure this out
-	running = true;
-	processThread = std::thread([this]()
-								{
-									while (running)
-									{
-										try
-										{
-											process();
-										}
-										catch (std::exception e)
-										{
-											fprintf(stderr, e.what());
-										}
-									}
-								});
-	processThread.detach();
+
 }
 
 MultiplexServer::~MultiplexServer()
@@ -66,6 +50,8 @@ void MultiplexServer::disconnect()
 
 void MultiplexServer::setup(const char *host_name, const unsigned short port, const std::function<void(MultiplexEvent)> callback)
 {
+	this->callback = callback;
+
 	ENetAddress address{ENET_HOST_ANY, port};
 	enet_address_set_host(&address, host_name);
 	host = enet_host_create(&address,
@@ -75,6 +61,25 @@ void MultiplexServer::setup(const char *host_name, const unsigned short port, co
 							0);
 	if (!host)
 		MULTIPLEX_ERROR("An error occurred while trying to create an ENet server host.");
+
+	// TODO: actually figure this out
+	running = true;
+	processThread = std::thread([this]()
+								{
+									while (running)
+									{
+										process();
+										/* try
+										{
+											process();
+										}
+										catch (std::exception e)
+										{
+											fprintf(stderr, e.what());
+										} */
+									}
+								});
+	processThread.detach();
 }
 
 void MultiplexServer::send(const MultiplexUser *destination, const MultiplexInstance *instance, const MultiplexUser *sender, const MultiplexResponse type, const char *data, const size_t dataSize) const
@@ -132,7 +137,7 @@ void MultiplexServer::process()
 	MultiplexEvent friendlyEvent {};
 
 	// Wait for an event.
-	if (enet_host_service((ENetHost *)host.load(), &event, 5000) > 0)
+	if (enet_host_service((ENetHost *)host.load(), &event, 10) > 0)
 	{
 		switch (event.type)
 		{
@@ -188,6 +193,11 @@ void MultiplexServer::process()
 				{
 					// TODO: message recieved callback
 
+					// doing this for now.
+					// the plan is clients will send an user in a message indicating who should receive it
+					// servers will send an user in a message indicating who sent it
+					friendlyEvent.data = (char *)event.packet->data + 1;
+					friendlyEvent.size = event.packet->dataLength - 1;
 					break;
 				}
 				}

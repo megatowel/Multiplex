@@ -71,7 +71,7 @@ MultiplexUser::MultiplexUser(MultiplexBase *owner)
     {
         MULTIPLEX_ERROR("User can't be constructed without an owner.");
     }
-    owner = owner;
+    this->owner = owner;
     owner->users.push_back(this);
 }
 

@@ -105,7 +105,7 @@ namespace Megatowel
             void *to_native_packet() const;
             MultiplexResponse responseType;
             unsigned short id;
-            char *data;
+            char data[50000];
             size_t size;
         };
     }
