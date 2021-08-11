@@ -21,3 +21,6 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 build
+
+# macOS specific files
+.DS_Store
